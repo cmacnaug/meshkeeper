@@ -17,11 +17,9 @@
 package org.fusesource.meshkeeper.distribution.remoting.rmiviajms;
 
 import java.net.URI;
-import java.util.Map;
 
-import org.fusesource.meshkeeper.distribution.remoting.RemotingFactory;
 import org.fusesource.meshkeeper.distribution.remoting.RemotingClient;
-import org.fusesource.meshkeeper.util.internal.IntrospectionSupport;
+import org.fusesource.meshkeeper.distribution.remoting.RemotingFactory;
 import org.fusesource.meshkeeper.util.internal.URISupport;
 
 /**

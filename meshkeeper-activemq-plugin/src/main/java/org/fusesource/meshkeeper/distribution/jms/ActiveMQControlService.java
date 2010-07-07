@@ -17,11 +17,8 @@
 package org.fusesource.meshkeeper.distribution.jms;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.URL;
 import java.util.List;
-
 
 import org.apache.activemq.broker.BrokerFactory;
 import org.apache.activemq.broker.BrokerService;

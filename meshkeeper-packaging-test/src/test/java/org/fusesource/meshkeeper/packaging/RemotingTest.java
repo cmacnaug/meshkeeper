@@ -24,11 +24,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.TimeoutException;
 
+import junit.framework.TestCase;
+
 import org.fusesource.meshkeeper.MavenTestSupport;
 import org.fusesource.meshkeeper.MeshContainer;
 import org.fusesource.meshkeeper.MeshKeeper;
-
-import junit.framework.TestCase;
 
 /**
  * RemotingTest
@@ -63,8 +63,7 @@ public class RemotingTest extends TestCase {
         private static final long serialVersionUID = 1L;
         public String foreignJarPath;
 
-        @SuppressWarnings("deprecation")
-        public void triggerFreignException() throws Exception {
+        public void triggerForeignException() throws Exception {
             Object foreignObject = null;
             Method foreignMethod = null;
             try {
@@ -110,7 +109,7 @@ public class RemotingTest extends TestCase {
         RemotingTestObject proxy = (RemotingTestObject) container.host("RemotingTestObject", object);
 
         try {
-            proxy.triggerFreignException();
+            proxy.triggerForeignException();
         } catch (RemotingTestException rte) {
             throw rte;
         } catch (Exception e) {

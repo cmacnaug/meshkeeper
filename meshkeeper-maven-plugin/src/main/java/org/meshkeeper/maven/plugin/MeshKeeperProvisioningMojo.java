@@ -16,8 +16,6 @@
  */
 package org.meshkeeper.maven.plugin;
 
-import java.net.URL;
-
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;

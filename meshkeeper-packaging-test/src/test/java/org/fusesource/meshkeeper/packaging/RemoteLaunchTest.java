@@ -23,9 +23,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import junit.framework.TestCase;
+
 import org.fusesource.meshkeeper.Expression;
-import org.fusesource.meshkeeper.Expression.FileExpression;
-import org.fusesource.meshkeeper.util.DefaultProcessListener;
 import org.fusesource.meshkeeper.JavaLaunch;
 import org.fusesource.meshkeeper.LaunchDescription;
 import org.fusesource.meshkeeper.MavenTestSupport;
@@ -34,9 +34,8 @@ import org.fusesource.meshkeeper.MeshEventListener;
 import org.fusesource.meshkeeper.MeshKeeper;
 import org.fusesource.meshkeeper.MeshProcess;
 import org.fusesource.meshkeeper.MeshProcessListener;
-
-import junit.framework.AssertionFailedError;
-import junit.framework.TestCase;
+import org.fusesource.meshkeeper.Expression.FileExpression;
+import org.fusesource.meshkeeper.util.DefaultProcessListener;
 
 /**
  * RemoteLaunchTest
