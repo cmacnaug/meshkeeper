@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.MeshArtifact;
-import org.fusesource.meshkeeper.distribution.repository.AuthenticationInfo;
+import org.fusesource.meshkeeper.MeshKeeper.Repository;
 import org.fusesource.meshkeeper.distribution.repository.wagon.WagonResourceManager;
 
 import junit.framework.TestCase;
@@ -57,12 +57,12 @@ public class ResourceTest extends TestCase {
         authInfo.setPassword("fusemqtestpw");
         rm.setCentralRepoUri(remoteRepo, authInfo);
 
-        MeshArtifact resource = rm.createResource();
-        resource.setRepositoryId("common");
+        MeshArtifact resource = rm.createArtifact();
+        resource.setRepositoryId(Repository.CENTRAL_REPOSITORY_ID);
         resource.setRepositoryPath("testfolder");
         resource.setType(MeshArtifact.DIRECTORY);
 
-        rm.resolveResource(resource);
+        rm.resolveArtifact(resource);
 
         assertEquals(new File("test-file-repo", resource.getRepositoryPath()), new File(resource.getLocalPath()));
 
@@ -82,12 +82,12 @@ public class ResourceTest extends TestCase {
         rm.setCentralRepoUri(remoteDir.toURI().toString(), null);
 
         String resourcePath = "testfolder";
-        MeshArtifact resource = rm.createResource();
-        resource.setRepositoryId("common");
+        MeshArtifact resource = rm.createArtifact();
+        resource.setRepositoryId(Repository.CENTRAL_REPOSITORY_ID);
         resource.setRepositoryPath(resourcePath);
         resource.setType(MeshArtifact.DIRECTORY);
 
-        rm.resolveResource(resource);
+        rm.resolveArtifact(resource);
 
         assertEquals(new File("test-file-repo", resource.getRepositoryPath()), new File(resource.getLocalPath()));
 

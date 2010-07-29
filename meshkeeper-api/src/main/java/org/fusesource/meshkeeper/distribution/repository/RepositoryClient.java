@@ -16,6 +16,7 @@
  */
 package org.fusesource.meshkeeper.distribution.repository;
 
+import org.fusesource.meshkeeper.AuthenticationInfo;
 import org.fusesource.meshkeeper.MeshKeeper;
 import org.fusesource.meshkeeper.distribution.PluginClient;
 

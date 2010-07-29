@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
 import org.apache.maven.wagon.TransferFailedException;
 import org.apache.maven.wagon.Wagon;
@@ -30,9 +32,10 @@ import org.apache.maven.wagon.repository.Repository;
 import org.apache.maven.wagon.shared.http.AbstractHttpClientWagon;
 import org.apache.maven.wagon.shared.http.HttpConfiguration;
 import org.apache.maven.wagon.shared.http.HttpMethodConfiguration;
+import org.fusesource.meshkeeper.AuthenticationInfo;
 import org.fusesource.meshkeeper.MeshArtifact;
+import org.fusesource.meshkeeper.MeshRepository;
 import org.fusesource.meshkeeper.distribution.repository.AbstractRepositoryClient;
-import org.fusesource.meshkeeper.distribution.repository.AuthenticationInfo;
 import org.fusesource.meshkeeper.util.internal.FileSupport;
 
 /**
@@ -46,8 +49,7 @@ import org.fusesource.meshkeeper.util.internal.FileSupport;
  */
 public class WagonResourceManager extends AbstractRepositoryClient {
 
-    //Access to our local repo:
-    private Wagon localWagon;
+    private static Log log = LogFactory.getLog(AbstractRepositoryClient.class);
 
     private static final HashMap<String, Class<? extends Wagon>> wagonProviders = new HashMap<String, Class<? extends Wagon>>();
 
@@ -58,6 +60,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
         registerWagonClass("ftp", "org.apache.maven.wagon.providers.ftp.FtpWagon");
         registerWagonClass("http", "org.apache.maven.wagon.providers.http.HttpWagon");
         registerWagonClass("dav", "org.apache.maven.wagon.providers.webdav.WebDavWagon");
+        registerWagonClass("scp", "org.apache.maven.wagon.providers.ssh.jsch.ScpWagon");
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +69,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             Class<? extends Wagon> clazz = (Class<? extends Wagon>) Thread.currentThread().getContextClassLoader().loadClass(classname);
             wagonProviders.put(protocol, clazz);
         } catch (Exception e) {
-
+            log.warn("Error loading provider class for " + protocol, e);
         }
 
     }
@@ -76,53 +79,64 @@ public class WagonResourceManager extends AbstractRepositoryClient {
      * 
      * @return An empty resource.
      */
-    public MeshArtifact createResource() {
+    public MeshArtifact createArtifact() {
         return new WagonResource();
     }
 
     public void setLocalRepoDir(String localRepoDir) throws Exception {
         File dir = new File(localRepoDir);
-        Repository localRepo = new Repository("local", dir.toURI().toString());
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        localWagon = connectWagon(localRepo, null);
+        registerRepository(createRepository(LOCAL_REPOSITORY_ID, dir.toURI().toString(), true, null));
     }
-    
+
     public File getLocalRepoDirectory() {
-        return new File(localWagon.getRepository().getBasedir());
+        MeshRepository repo;
+        try {
+            repo = getRepository(LOCAL_REPOSITORY_ID);
+            if (repo != null) {
+                return repo.getBaseDirectory();
+            }
+        } catch (Exception e) {
+        }
+        
+        return null;
     }
 
     public void setCentralRepoUri(String url, AuthenticationInfo authInfo) throws Exception {
-        Repository remoteRepo = new Repository("common", url);
-        connectWagon(remoteRepo, authInfo);
+        connectWagon(createRepository(CENTRAL_REPOSITORY_ID, url, false, authInfo));
     }
-    
-    public void resolveResource(MeshArtifact resource) throws Exception {
-        Wagon w = null;
+
+    public MeshArtifact resolveArtifact(MeshArtifact artifact) throws Exception {
+        return resolveArtifact(artifact, LOCAL_REPOSITORY_ID);
+    }
+
+    public MeshArtifact resolveArtifact(MeshArtifact resource, String repositoryId) throws Exception {
+        Wagon target = connectWagon(repositoryId);
+
+        Wagon source = null;
         long timestamp = 0;
-        if (localWagon.resourceExists(resource.getRepositoryPath())) {
-            timestamp = new File(localWagon.getRepository().getBasedir() + File.separator + resource.getRepositoryPath()).lastModified();
+        if (target.resourceExists(resource.getRepositoryPath())) {
+            timestamp = new File(target.getRepository().getBasedir() + File.separator + resource.getRepositoryPath()).lastModified();
         } else {
             synchronized (this) {
-                w = connectedRepos.get(resource.getRepositoryId());
-                if (w == null) {
-                    Repository remote = new Repository(resource.getRepositoryId(), resource.getRepositoryUri());
-                    w = connectWagon(remote, null);
+                source = connectedRepos.get(resource.getRepositoryId());
+                if (source == null) {
+                    source = connectWagon(resource.getRepositoryId());
                 }
             }
 
-            if (w != null && w.resourceExists(resource.getRepositoryPath())) {
+            if (source != null && source.resourceExists(resource.getRepositoryPath())) {
                 try {
                     if (resource.getType() == MeshArtifact.DIRECTORY) {
                         String path = resource.getRepositoryPath();
                         if (!path.endsWith("/")) {
                             path = path + "/";
                         }
-                        downloadDirectory(w, new File(localWagon.getRepository().getBasedir()), path);
+                        downloadDirectory(source, new File(target.getRepository().getBasedir()), path);
                     } else {
-                        w.getIfNewer(resource.getRepositoryPath(), new File(localWagon.getRepository().getBasedir(), resource.getRepositoryPath()), timestamp);
-
+                        source.getIfNewer(resource.getRepositoryPath(), new File(target.getRepository().getBasedir(), resource.getRepositoryPath()), timestamp);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -131,7 +145,8 @@ public class WagonResourceManager extends AbstractRepositoryClient {
                 throw new Exception("Resource not found: " + resource.getRepositoryPath());
             }
         }
-        resource.setLocalPath(localWagon.getRepository().getBasedir() + File.separator + resource.getRepositoryPath());
+        resource.setLocalPath(target.getRepository().getBasedir() + File.separator + resource.getRepositoryPath());
+        return resource;
     }
 
     /**
@@ -162,20 +177,35 @@ public class WagonResourceManager extends AbstractRepositoryClient {
         synchronized (this) {
             w = connectedRepos.get(resource.getRepositoryId());
             if (w == null) {
-                Repository remote = new Repository(resource.getRepositoryId(), resource.getRepositoryUri());
-                w = connectWagon(remote, null);
+                w = connectWagon(resource.getRepositoryId());
             }
         }
         w.put(f, resource.getRepositoryPath());
     }
 
-    private Wagon connectWagon(Repository repo, AuthenticationInfo authInfo) throws Exception {
+    private Wagon connectWagon(String repositoryId) throws Exception {
+        MeshRepository repo = getRepository(repositoryId);
+        if (repo == null) {
+            throw new Exception("MeshRepository with id " + repositoryId + " was not found.");
+        }
+        return connectWagon(repo);
+    }
+
+    private Wagon connectWagon(MeshRepository meshRepo) throws Exception {
+        Wagon w = connectedRepos.get(meshRepo.getRepositoryId());
+        if (w != null) {
+            return w;
+        }
+        Repository repo = new Repository(meshRepo.getRepositoryId(), meshRepo.getRepositoryUri());
         Class<? extends Wagon> wagonClass = wagonProviders.get(repo.getProtocol());
-        Wagon w = wagonClass.newInstance();
-        
+        if (wagonClass == null) {
+            throw new Exception("Unsupported repository protocol" + repo.getProtocol());
+        }
+        w = wagonClass.newInstance();
+
         if (w instanceof AbstractHttpClientWagon) {
-            //Override the default http configuration since it erroneously sets 
-            //Accept Encoding: gzip, then barfs when it doesn't check for it.
+            // Override the default http configuration since it erroneously sets
+            // Accept Encoding: gzip, then barfs when it doesn't check for it.
             HttpConfiguration hc = new HttpConfiguration();
             HttpMethodConfiguration hmc = new HttpMethodConfiguration();
             hmc.setUseDefaultHeaders(false);
@@ -187,7 +217,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             ((AbstractHttpClientWagon) w).setHttpConfiguration(hc);
         }
 
-        w.connect(repo, convertAuthInfo(authInfo));
+        w.connect(repo, convertAuthInfo(meshRepo.getAuthenticationInfo()));
         connectedRepos.put(repo.getName(), w);
         return w;
     }
@@ -213,14 +243,18 @@ public class WagonResourceManager extends AbstractRepositoryClient {
     private static final void downloadFile(Wagon source, File targetDir, String name) throws IOException, TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
         File target = new File(targetDir, name);
         source.get(name, new File(targetDir, name));
-        //Empty files may not get created, so make sure that they are created here. 
+        // Empty files may not get created, so make sure that they are created
+        // here.
         if (!target.exists()) {
             target.createNewFile();
         }
     }
 
     public void purgeLocalRepo() throws IOException {
-        FileSupport.recursiveDelete(localWagon.getRepository().getBasedir());
+        File local = getLocalRepoDirectory();
+        if (local != null) {
+            FileSupport.recursiveDelete(local);
+        }
     }
 
     /**
@@ -228,11 +262,10 @@ public class WagonResourceManager extends AbstractRepositoryClient {
      * 
      * @throws Exception
      */
-    public void start()
-    {
-        //No-op:
+    public void start() {
+        // No-op:
     }
-    
+
     /**
      * Closes all repository connections.
      * 
@@ -261,6 +294,5 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             return rc;
         }
     }
-
 
 }

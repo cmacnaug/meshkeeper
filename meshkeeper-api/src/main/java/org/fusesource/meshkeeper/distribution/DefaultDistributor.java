@@ -42,7 +42,7 @@ import org.fusesource.meshkeeper.distribution.registry.RegistryFactory;
 import org.fusesource.meshkeeper.distribution.remoting.RemotingClient;
 import org.fusesource.meshkeeper.distribution.remoting.RemotingFactory;
 import org.fusesource.meshkeeper.distribution.repository.RepositoryClient;
-import org.fusesource.meshkeeper.distribution.repository.RepositoryManagerFactory;
+import org.fusesource.meshkeeper.distribution.repository.RepositoryProviderFactory;
 
 /**
  * Distributor
@@ -62,7 +62,8 @@ class DefaultDistributor implements MeshKeeper {
     private String eventingUri;
     private String repositoryUri;
     private String workingDirectory;
-
+    private String localRepositoryDirectory;
+    
     private RemotingWrapper remoting;
     private RegistryClient registry;
     private EventClient eventing;
@@ -221,21 +222,21 @@ class DefaultDistributor implements MeshKeeper {
                 throw new IllegalStateException("destroyed");
             }
             synchronized (this) {
-                //TODO make this work like the other plugins:
-                try {
-                    //Create ResourceManager:
-                    RepositoryClient resourceManager = new RepositoryManagerFactory().create(repositoryUri);
-                    String commonRepoUrl = registry.getRegistryObject(ControlServer.REPOSITORY_URI_PATH);
-                    if (commonRepoUrl != null) {
-                        resourceManager.setCentralRepoUri(commonRepoUrl, null);
+                if(repository == null)
+                {
+                    try
+                    {
+                        repository = createPluginClient(repositoryUri,  new RepositoryProviderFactory(), ControlServer.REPOSITORY_URI_PATH, ControlServer.DEFAULT_REPOSITORY_URI);
+                        if(localRepositoryDirectory == null) {
+                            localRepositoryDirectory = workingDirectory + File.separator + "local-repo";
+                        }
+                        repository.setLocalRepoDir(localRepositoryDirectory);
                     }
-                    resourceManager.setLocalRepoDir(workingDirectory + File.separator + "local-repo");
-                    resourceManager.start();
-                    repository = resourceManager;
-                } catch (Exception e) {
-                    RuntimeException re = new RuntimeException("Error creating repository client", e);
-                    log.error(re);
-                    throw re;
+                    catch (Exception e) {
+                        RuntimeException re = new RuntimeException("Error creating repository client", e);
+                        log.error(re);
+                        throw re;
+                    }
                 }
             }
         }
@@ -416,6 +417,14 @@ class DefaultDistributor implements MeshKeeper {
      */
     public void setWorkingDirectory(String workingDirectory) {
         this.workingDirectory = workingDirectory;
+    }
+    
+    public void setLocalRepositoryDirectory(String localRepositoryDirectory) {
+        this.localRepositoryDirectory = localRepositoryDirectory;
+    }
+
+    public String getLocalRepositoryDirectory() {
+        return localRepositoryDirectory;
     }
 
     /**

@@ -39,7 +39,6 @@ public class DistributorFactory {
 
     private Log log = LogFactory.getLog(DistributorFactory.class);
 
-    private static String DEFAULT_REPOSITORY_PROVIDER = "wagon";
     private static String DEFAULT_REGISTRY_URI = ControlServer.DEFAULT_REGISTRY_URI;
     private static final ScheduledExecutorService EXECUTOR;
     private static final AtomicInteger EXECUTOR_COUNT = new AtomicInteger(0);
@@ -51,12 +50,11 @@ public class DistributorFactory {
         });
     }
 
-    private String repositoryProvider = DEFAULT_REPOSITORY_PROVIDER;
+    private String repositoryUri;
     private String registryUri = DEFAULT_REGISTRY_URI;
     private String directory = MeshKeeperFactory.getDefaultClientDirectory().getPath();
     private String eventingUri;
     private String remotingUri;
-    private String repositoryUri;
 
     /**
      * This convenience method creates a Distributor by connecting to a control
@@ -87,7 +85,7 @@ public class DistributorFactory {
         ret.setRegistryUri(registryUri);
         ret.setRemotingUri(remotingUri);
         ret.setEventingUri(eventingUri);
-        ret.setRepositoryUri(repositoryProvider);
+        ret.setRepositoryUri(repositoryUri);
         ret.setWorkingDirectory(getDirectory());
         ret.start();
         if (log.isTraceEnabled()) {
@@ -99,12 +97,12 @@ public class DistributorFactory {
 
     }
 
-    public String getRepositoryProvider() {
-        return repositoryProvider;
+    public String getRepositoryUri() {
+        return repositoryUri;
     }
 
-    public void setRepositoryProvider(String repositoryProvider) {
-        this.repositoryProvider = repositoryProvider;
+    public void setRepositoryUri(String repositoryUri) {
+        this.repositoryUri = repositoryUri;
     }
 
     public String getRegistryUri() {
@@ -130,15 +128,7 @@ public class DistributorFactory {
     public void setRemotingUri(String remotingUri) {
         this.remotingUri = remotingUri;
     }
-
-    public String getRepositoryUri() {
-        return repositoryUri;
-    }
-
-    public void setRepositoryUri(String repositoryUri) {
-        this.repositoryUri = repositoryUri;
-    }
-
+    
     public String getDirectory() {
         return directory;
     }

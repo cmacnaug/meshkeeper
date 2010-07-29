@@ -47,7 +47,7 @@ public class EmbeddedProvisioner implements Provisioner {
     private boolean machineOwnerShip;
     private String deploymentUri;
     private int registryPort = 0;
-    private int provisioningTimeout = -1;
+    private long provisioningTimeout = -1;
 
     /*
      * (non-Javadoc)
@@ -355,7 +355,7 @@ public class EmbeddedProvisioner implements Provisioner {
      *            online.
      */
     public void setProvisioningTimeout(long provisioningTimeout) {
-
+	this.provisioningTimeout = provisioningTimeout;
     }
 
 }

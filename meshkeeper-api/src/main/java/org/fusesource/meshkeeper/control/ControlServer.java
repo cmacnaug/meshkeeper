@@ -55,7 +55,8 @@ public class ControlServer {
     public static final String DEFAULT_REMOTING_URI = "rmiviajms:" + DEFAULT_JMS_URI;
     public static final String DEFAULT_REGISTRY_URI = "zk:tcp://0.0.0.0:4040";
     public static final String DEFAULT_EVENT_URI = "eventviajms:" + DEFAULT_JMS_URI;
-
+    public static final String DEFAULT_REPOSITORY_URI = "wagon";
+    
     public static final String REMOTING_URI_PATH = Registry.MESH_KEEPER_ROOT + "/control/remoting-uri";
     public static final String EVENTING_URI_PATH = Registry.MESH_KEEPER_ROOT + "/control/eventing-uri";
     public static final String REPOSITORY_URI_PATH = Registry.MESH_KEEPER_ROOT + "/control/repository-uri";
@@ -66,7 +67,7 @@ public class ControlServer {
 
     private String jmsUri = DEFAULT_JMS_URI;
     private String registryUri = DEFAULT_REGISTRY_URI;
-    private String repositoryUri = System.getProperty("meshkeeper.repository.uri");
+    private String repositoryUri = System.getProperty("meshkeeper.repository.uri", DEFAULT_REPOSITORY_URI);
 
     private String directory = MeshKeeperFactory.getDefaultServerDirectory().getPath();
     private Thread shutdownHook;
@@ -154,7 +155,9 @@ public class ControlServer {
             factory.setRegistryUri(registryServer.getServiceUri());
             factory.setEventingUri(eventingUri);
             factory.setRemotingUri(remotingUri);
+            factory.setRepositoryUri(repositoryUri);
             factory.setDirectory(getDirectory());
+            
             meshKeeper = factory.create();
 
             //Register the control services:
@@ -175,7 +178,7 @@ public class ControlServer {
                 meshKeeper.registry().addRegistryObject(REPOSITORY_URI_PATH, false, repositoryUri);
                 log.info("Registered repository uri at " + REPOSITORY_URI_PATH + "=" + repositoryUri);
             } else {
-                log.info("Common repository uri was not set, some repository services may not be available");
+                log.info("Central repository uri was not set, some repository services may not be available");
             }
 
             //Let's save our controller properties to an output file
@@ -337,7 +340,7 @@ public class ControlServer {
 
     public void setRepositoryUri(String repositoryUri) {
         if (repositoryUri == null || repositoryUri.trim().length() == 0) {
-            this.repositoryUri = null;
+            this.repositoryUri = DEFAULT_REPOSITORY_URI;
         } else {
             this.repositoryUri = repositoryUri;
         }

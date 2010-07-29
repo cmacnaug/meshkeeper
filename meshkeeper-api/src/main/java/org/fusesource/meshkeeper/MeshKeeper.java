@@ -19,6 +19,7 @@ package org.fusesource.meshkeeper;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -685,30 +686,71 @@ public interface MeshKeeper {
      * @version 1.0
      */
     public interface Repository {
-
+        
+        /**
+         * The id of the local repository (if configured). Artifacts will be 
+         * resolved to this location
+         */
+        public static final String LOCAL_REPOSITORY_ID = "local";
+            
+    	/**
+    	 * The id of the common repository (if configured)
+    	 */
+    	public static final String CENTRAL_REPOSITORY_ID = "central";
+    	
+    	/**
+    	 * Creates a repository. 
+    	 * @param id
+    	 * @param repositoryUri
+    	 * @return
+    	 */
+    	public MeshRepository createRepository(String id, String repositoryUri, boolean isLocal, AuthenticationInfo authenticationInfo) throws Exception, URISyntaxException;
+    	
+    	/**
+    	 * Registers a repository.
+    	 * @param repository A repository. 
+    	 */
+    	public void registerRepository(MeshRepository repository) throws Exception;
+    	
+    	/**
+    	 * Unregisters a repository.
+    	 * @param The id of the repository to unregister.
+    	 */
+    	public void unregisterRepository(String repositoryId) throws Exception;
+	
         /**
          * Factory method for creating a resource.
          * 
          * @return An empty resource.
          */
-        public MeshArtifact createResource();
+        public MeshArtifact createArtifact();
 
         /**
-         * Called to locate the given resource.
+         * Called to locate the given resource. The resource will be resolved to 
+         * the repository specified by {@link #LOCAL_REPOSITORY_ID}
          * 
-         * @param resource
-         *            The resource to locate.
+         * @param artifact
+         *            The artifact to locate.
          * @throws Exception
          *             If there is an error locating the resource.
          */
-        public void resolveResource(MeshArtifact resource) throws Exception;
+        public MeshArtifact resolveArtifact(MeshArtifact artifact) throws Exception;
 
+        /**
+         * Resolves a resource to the local repository specified by the given repository
+         * id. 
+         * 
+         * @param resource The resource.
+         * @param localRepoId The local repo id. 
+         */
+        public MeshArtifact resolveArtifact(MeshArtifact artifact, String localRepoId) throws Exception;
+        
         /**
          * @param resource
          * @param data
          * @throws IOException
          */
-        public void deployFile(MeshArtifact resource, byte[] data) throws Exception;
+        public void deployFile(MeshArtifact artifact, byte[] data) throws Exception;
 
         /**
          * 

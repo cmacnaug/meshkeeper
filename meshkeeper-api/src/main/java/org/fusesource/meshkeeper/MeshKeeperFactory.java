@@ -37,6 +37,24 @@ import org.fusesource.meshkeeper.util.internal.MeshKeeperWrapper;
 public class MeshKeeperFactory {
 
     /**
+     * Constant signifying that MeshKeeper should be deployed in embedded mode
+     */
+    public static final String EMBEDDED = "embedded";
+    
+    /**
+     * Constant signifying that MeshKeeper should be deployed using the 
+     * {@link Provisioner} specified by {@link #MESHKEEPER_PROVISIONER_PROPERTY}
+     */
+    public static final String PROVISION = "provision";
+    
+    /**
+     * Constant signifying that MeshKeeper has already been provisioned and 
+     * the registry uri should be located using the {@link Provisioner} specified
+     * by {@link #MESHKEEPER_PROVISIONER_PROPERTY}
+     */
+    public static final String PROVISIONED = "provisioned";
+    
+    /**
      * When set this property indicates the uri of the MeshKeeper registry
      * service used to connect the MeshKeeper {@link ControlServer} when
      * {@link #createMeshKeeper()} is called.
@@ -91,6 +109,12 @@ public class MeshKeeperFactory {
      * for launched java processes.
      */
     public static final String MESHKEEPER_UUID_PROPERTY = "meshkeeper.uuid";
+    
+    /**
+     * When this property is set it indicates the uri at which the "central" repository 
+     * for resolving {@link MeshArtifact} is located. 
+     */
+    public static final String MESHKEEPER_CENTRAL_REPO_URI_PROPERTY = "meshkeeper.repository.uri";
     
     private static final ProvisioningTracker PROVISIONING_TRACKER = new ProvisioningTracker();
 
@@ -156,11 +180,19 @@ public class MeshKeeperFactory {
     public static MeshKeeper createMeshKeeper() throws Exception {
 
         String url = System.getProperty(MESHKEEPER_REGISTRY_PROPERTY, "embedded");
-
-        if ("provisioned".equals(url)) {
-            url = PROVISIONING_TRACKER.getProvisioner().findMeshRegistryUri();
-        } else if ("provision".equals(url) || "embedded".equals(url)) {
-            // We wrap it so we know when we can stop the embedded registiry.
+        String baseDir = getDefaultBaseDirectory().getCanonicalPath();
+        String centralRepoUri = System.getProperty(MESHKEEPER_CENTRAL_REPO_URI_PROPERTY);
+        
+        return createMeshKeeperInternal(url, baseDir, centralRepoUri);
+        
+    }
+    
+    protected static MeshKeeper createMeshKeeperInternal(String registryUri, String dataDir, String centralRepoUri) throws Exception
+    {
+	if ("provisioned".equals(registryUri)) {
+	    registryUri = PROVISIONING_TRACKER.getProvisioner().findMeshRegistryUri();
+        } else if ("provision".equals(registryUri) || "embedded".equals(registryUri)) {
+            // We wrap it so we know when we can stop the embedded registry.
             return new MeshKeeperWrapper(createMeshKeeper(PROVISIONING_TRACKER.acquireProvisioned())) {
                 AtomicBoolean destroyed = new AtomicBoolean(false);
 
@@ -172,7 +204,7 @@ public class MeshKeeperFactory {
                 }
             };
         }
-        return createMeshKeeper(url);
+        return createMeshKeeper(registryUri);
     }
 
     /**

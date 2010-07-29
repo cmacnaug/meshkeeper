@@ -16,9 +16,9 @@
  */
 package org.fusesource.meshkeeper.distribution.repository.wagon;
 
-import org.fusesource.meshkeeper.distribution.repository.AuthenticationInfo;
+import org.fusesource.meshkeeper.AuthenticationInfo;
 import org.fusesource.meshkeeper.distribution.repository.RepositoryClient;
-import org.fusesource.meshkeeper.distribution.repository.RepositoryManagerFactory;
+import org.fusesource.meshkeeper.distribution.repository.RepositoryProviderFactory;
 
 /**
  * WagonResourceManagerFactory
@@ -29,7 +29,7 @@ import org.fusesource.meshkeeper.distribution.repository.RepositoryManagerFactor
  * @author cmacnaug
  * @version 1.0
  */
-public class WagonResourceManagerFactory extends RepositoryManagerFactory {
+public class WagonResourceManagerFactory extends RepositoryProviderFactory {
 
     String localRepoDir;
     String commonRepoUrl;
@@ -50,6 +50,8 @@ public class WagonResourceManagerFactory extends RepositoryManagerFactory {
         }
         if (commonRepoUrl != null) {
             wrm.setCentralRepoUri(commonRepoUrl, authInfo);
+        } else if(uri != null && uri.trim().length() > 0){
+            wrm.setCentralRepoUri(uri.toString(), authInfo);
         }
         return wrm;
     }

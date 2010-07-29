@@ -16,29 +16,47 @@
  */
 package org.fusesource.meshkeeper.spring;
 
+import java.io.File;
+import java.util.List;
+
 import org.fusesource.meshkeeper.MeshKeeper;
-import org.fusesource.meshkeeper.distribution.DistributorFactory;
+import org.fusesource.meshkeeper.MeshRepository;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
-
-import java.io.File;
 
 /**
  * A spring FactoryBean to create MeshKeeper instances.
  * 
  * @author chirino
  */
-public class MeshKeeperFactory implements FactoryBean, InitializingBean, DisposableBean {
-    
+public class MeshKeeperFactory extends org.fusesource.meshkeeper.MeshKeeperFactory implements FactoryBean, InitializingBean, DisposableBean {
+
     private MeshKeeper meshKeeper;
+    private String registryUri;
+    private File directory;
+    private String centralRepositoryUri;
+    private String provisionerUri;
+    private List<MeshRepository> repositories;
 
     public void afterPropertiesSet() throws Exception {
-        DistributorFactory factory = new DistributorFactory();
-        factory.setRegistryUri(registry);
-        factory.setDirectory(directory.getCanonicalPath());
-        meshKeeper = factory.create();
-        meshKeeper.start();
+        if (registryUri != null) {
+            System.setProperty(MESHKEEPER_REGISTRY_PROPERTY, registryUri);
+        }
+        if (centralRepositoryUri != null) {
+            System.setProperty(MESHKEEPER_CENTRAL_REPO_URI_PROPERTY, centralRepositoryUri);
+        }
+        if (directory != null) {
+            System.setProperty(MESHKEEPER_BASE_PROPERTY, directory.getAbsolutePath());
+        }
+        meshKeeper = super.createMeshKeeper();
+        
+        //Add additional repositories:
+        if (repositories != null) {
+            for (MeshRepository repo : repositories) {
+                meshKeeper.repository().registerRepository(repo);
+            }
+        }
     }
 
     public void destroy() throws Exception {
@@ -52,19 +70,17 @@ public class MeshKeeperFactory implements FactoryBean, InitializingBean, Disposa
     public boolean isSingleton() {
         return true;
     }
+
     public Object getObject() throws Exception {
         return meshKeeper;
     }
 
-    private String registry;
-    private File directory;
-
     public void setRegistryUri(String registry) {
-        this.registry = registry;
+        this.registryUri = registry;
     }
 
     public String getRegistryUri() {
-        return registry;
+        return registryUri;
     }
 
     public void setDirectory(File directory) {
@@ -74,4 +90,25 @@ public class MeshKeeperFactory implements FactoryBean, InitializingBean, Disposa
     public File getDirectory() {
         return directory;
     }
+
+    public String getCentralRepositoryUri() {
+        return centralRepositoryUri;
+    }
+
+    public void setCentralRepositoryUri(String centralRepositoryUri) {
+        this.centralRepositoryUri = centralRepositoryUri;
+    }
+
+    public void setProvisionerUri(String provisionerUri) {
+        this.provisionerUri = provisionerUri;
+    }
+
+    public String getProvisionerUri() {
+        return provisionerUri;
+    }
+
+    public void setRepositories(List<MeshRepository> repositories) {
+        this.repositories = repositories;
+    }
+
 }
