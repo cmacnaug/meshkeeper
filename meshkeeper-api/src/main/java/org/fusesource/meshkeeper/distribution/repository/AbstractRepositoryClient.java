@@ -16,10 +16,12 @@
  */
 package org.fusesource.meshkeeper.distribution.repository;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import org.fusesource.meshkeeper.AuthenticationInfo;
+import org.fusesource.meshkeeper.MeshArtifact;
 import org.fusesource.meshkeeper.MeshRepository;
 import org.fusesource.meshkeeper.distribution.AbstractPluginClient;
 
@@ -48,7 +50,7 @@ public abstract class AbstractRepositoryClient extends AbstractPluginClient impl
      * @param authenticationInfo
      *            authentication info for the repository.
      * @return
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     public MeshRepository createRepository(String id, String repositoryUri, boolean isLocal, AuthenticationInfo authenticationInfo) throws URISyntaxException {
         return new RepositoryImpl(id, repositoryUri, isLocal, authenticationInfo);
@@ -101,4 +103,67 @@ public abstract class AbstractRepositoryClient extends AbstractPluginClient impl
         }
         return rc;
     }
+
+    public final MeshArtifact resolveArtifact(MeshArtifact artifact) throws Exception {
+        return resolveArtifact(artifact, LOCAL_REPOSITORY_ID);
+    }
+
+    public final MeshArtifact resolveArtifact(MeshArtifact artifact, String repositoryId) throws Exception {
+        MeshArtifact toResolve = createArtifact();
+        toResolve.setRepositoryId(artifact.getRepositoryId());
+        toResolve.setRepositoryPath(artifact.getRepositoryPath());
+        toResolve.setType(MeshArtifact.FILE);
+
+        toResolve = resolveOsMap(artifact, repositoryId);
+
+        downloadArtifact(toResolve, repositoryId);
+        artifact.setLocalPath(toResolve.getLocalPath());
+        return artifact;
+    }
+
+    private MeshArtifact resolveOsMap(MeshArtifact resource, String repositoryId) throws Exception {
+        String sourceDir = resource.getRepositoryPath();
+        if (resource.getType() == MeshArtifact.DIRECTORY) {
+            if (!sourceDir.endsWith("/")) {
+                sourceDir = sourceDir + "/";
+            }
+        } else {
+            sourceDir = new File(resource.getRepositoryPath()).getParent();
+        }
+
+        MeshArtifact osMap = createArtifact();
+        osMap.setRepositoryId(resource.getRepositoryId());
+        osMap.setRepositoryPath(sourceDir + "os.map");
+        osMap.setType(MeshArtifact.FILE);
+
+        try {
+            osMap = downloadArtifact(osMap, repositoryId);
+        } catch (Exception e) {
+            // No os map or couldn't find one, just return the original
+            // artifact.
+            return resource;
+        }
+
+        String mapped = OsMapper.map(sourceDir, new File(osMap.getLocalPath()));
+        if (mapped != null) {
+            resource.setRepositoryPath(sourceDir + mapped);
+        }
+
+        return resource;
+    }
+
+    /**
+     * Subclasses should implement this method to download an artifact to the
+     * given localRepositoryId.
+     * 
+     * @param resource
+     *            The resource to resolve
+     * @param localRepositoryId
+     *            The target repository id.
+     * @throws Exception
+     *             if there is an error downloading the artifact.
+     * @return The resolved artifact
+     */
+    protected abstract MeshArtifact downloadArtifact(MeshArtifact resource, String localRepositoryId) throws Exception;
+
 }

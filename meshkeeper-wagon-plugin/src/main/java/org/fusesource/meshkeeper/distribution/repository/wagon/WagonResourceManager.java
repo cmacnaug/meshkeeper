@@ -100,7 +100,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             }
         } catch (Exception e) {
         }
-        
+
         return null;
     }
 
@@ -108,43 +108,46 @@ public class WagonResourceManager extends AbstractRepositoryClient {
         connectWagon(createRepository(CENTRAL_REPOSITORY_ID, url, false, authInfo));
     }
 
-    public MeshArtifact resolveArtifact(MeshArtifact artifact) throws Exception {
-        return resolveArtifact(artifact, LOCAL_REPOSITORY_ID);
-    }
-
-    public MeshArtifact resolveArtifact(MeshArtifact resource, String repositoryId) throws Exception {
+    public MeshArtifact downloadArtifact(MeshArtifact resource, String repositoryId) throws Exception {
         Wagon target = connectWagon(repositoryId);
 
         Wagon source = null;
         long timestamp = 0;
         if (target.resourceExists(resource.getRepositoryPath())) {
             timestamp = new File(target.getRepository().getBasedir() + File.separator + resource.getRepositoryPath()).lastModified();
-        } else {
-            synchronized (this) {
-                source = connectedRepos.get(resource.getRepositoryId());
-                if (source == null) {
-                    source = connectWagon(resource.getRepositoryId());
-                }
-            }
+        }
 
-            if (source != null && source.resourceExists(resource.getRepositoryPath())) {
-                try {
-                    if (resource.getType() == MeshArtifact.DIRECTORY) {
-                        String path = resource.getRepositoryPath();
-                        if (!path.endsWith("/")) {
-                            path = path + "/";
-                        }
-                        downloadDirectory(source, new File(target.getRepository().getBasedir()), path);
-                    } else {
-                        source.getIfNewer(resource.getRepositoryPath(), new File(target.getRepository().getBasedir(), resource.getRepositoryPath()), timestamp);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else if (timestamp == 0) {
-                throw new Exception("Resource not found: " + resource.getRepositoryPath());
+        synchronized (this) {
+            source = connectedRepos.get(resource.getRepositoryId());
+            if (source == null) {
+                source = connectWagon(resource.getRepositoryId());
             }
         }
+
+        if (source != null && source.resourceExists(resource.getRepositoryPath())) {
+
+            String sourceDir = resource.getRepositoryPath();
+            if (resource.getType() == MeshArtifact.DIRECTORY) {
+                if (!sourceDir.endsWith("/")) {
+                    sourceDir = sourceDir + "/";
+                }
+            } else {
+                sourceDir = new File(target.getRepository().getBasedir(), resource.getRepositoryPath()).getParent();
+            }
+
+            try {
+                if (resource.getType() == MeshArtifact.DIRECTORY) {
+                    downloadDirectory(source, new File(target.getRepository().getBasedir()), sourceDir);
+                } else {
+                    source.getIfNewer(resource.getRepositoryPath(), new File(target.getRepository().getBasedir(), resource.getRepositoryPath()), timestamp);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else if (timestamp == 0) {
+            throw new Exception("Resource not found: " + resource.getRepositoryPath());
+        }
+
         resource.setLocalPath(target.getRepository().getBasedir() + File.separator + resource.getRepositoryPath());
         return resource;
     }
