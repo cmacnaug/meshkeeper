@@ -124,6 +124,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             }
         }
 
+        log.debug("Downloading " + resource.getRepositoryPath() + " from " + source.getRepository().getUrl());
         if (source != null && source.resourceExists(resource.getRepositoryPath())) {
 
             String sourceDir = resource.getRepositoryPath();
@@ -137,7 +138,8 @@ public class WagonResourceManager extends AbstractRepositoryClient {
 
             try {
                 if (resource.getType() == MeshArtifact.DIRECTORY) {
-                    downloadDirectory(source, new File(target.getRepository().getBasedir()), sourceDir);
+                    
+                    downloadDirectory(source, new File(target.getRepository().getBasedir()), sourceDir, timestamp);
                 } else {
                     source.getIfNewer(resource.getRepositoryPath(), new File(target.getRepository().getBasedir(), resource.getRepositoryPath()), timestamp);
                 }
@@ -226,8 +228,9 @@ public class WagonResourceManager extends AbstractRepositoryClient {
     }
 
     @SuppressWarnings("unchecked")
-    private static final void downloadDirectory(Wagon source, File targetDir, String path) throws Exception {
+    private static final void downloadDirectory(Wagon source, File targetDir, String path, long timestamp) throws Exception {
         Iterator<String> i = (Iterator<String>) source.getFileList(path).iterator();
+        
         if (!i.hasNext()) {
             File target = new File(targetDir, path);
             target.mkdirs();
@@ -235,17 +238,17 @@ public class WagonResourceManager extends AbstractRepositoryClient {
             while (i.hasNext()) {
                 String file = i.next();
                 if (file.endsWith("/")) {
-                    downloadDirectory(source, targetDir, path + file);
+                    downloadDirectory(source, targetDir, path + file, timestamp);
                 } else {
-                    downloadFile(source, targetDir, path + file);
+                    downloadFile(source, targetDir, path + file, timestamp);
                 }
             }
         }
     }
 
-    private static final void downloadFile(Wagon source, File targetDir, String name) throws IOException, TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    private static final void downloadFile(Wagon source, File targetDir, String name, long timestamp) throws IOException, TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
         File target = new File(targetDir, name);
-        source.get(name, new File(targetDir, name));
+        source.getIfNewer(name, new File(targetDir, name), timestamp);
         // Empty files may not get created, so make sure that they are created
         // here.
         if (!target.exists()) {
