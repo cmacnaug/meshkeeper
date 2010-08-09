@@ -80,7 +80,7 @@ public class ZooKeeperRegistry extends AbstractRegistryClient {
                 //ZK doesn't like schemes, so just take host and port
                 URI uri = new URI(connectUrl);
 
-                zk = new ZooKeeper(uri.getAuthority() + ":" + uri.getPort(), sessionTimeout, new Watcher() {
+                zk = new ZooKeeper(uri.getHost() + ":" + uri.getPort(), sessionTimeout, new Watcher() {
                     public void process(WatchedEvent event) {
                         switch (event.getState()) {
                         case SyncConnected:
@@ -91,6 +91,7 @@ public class ZooKeeperRegistry extends AbstractRegistryClient {
                     }
                 });
                 zk.addAuthInfo("digest", (userid + ":" + password).getBytes());
+                
 
             }
         }
