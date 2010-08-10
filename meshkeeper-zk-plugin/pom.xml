@@ -47,7 +47,7 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache</groupId>
+      <groupId>org.apache.hadoop</groupId>
       <artifactId>zookeeper</artifactId>
       <!--version>3.2.1-chirino-0</version>-->
       <version>3.3.1</version>
