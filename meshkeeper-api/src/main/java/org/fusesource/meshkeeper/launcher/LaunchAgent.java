@@ -92,6 +92,9 @@ public class LaunchAgent implements LaunchAgentService {
     public MeshProcess launch(LaunchDescription launchDescription, String sourceRegistryPath, MeshProcessListener handler) throws Exception {
         checkForRogueProcesses(10000);
         synchronized (this) {
+            if(!started) {
+                throw new IllegalStateException("Agent is not started");
+            }
             int pid = pidCounter++;
 
             LocalProcess rc = createLocalProcess(launchDescription, handler, pid);
@@ -160,6 +163,7 @@ public class LaunchAgent implements LaunchAgentService {
 
     public void stop() throws Exception {
 
+        ArrayList<LocalProcess> runningProcs = null;
         synchronized (this) {
             if (!started) {
                 return;
@@ -171,14 +175,18 @@ public class LaunchAgent implements LaunchAgentService {
 
             started = false;
 
-            for (LocalProcess process : processes.values()) {
-                try {
-                    process.kill();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            
+            runningProcs = new ArrayList<LocalProcess>(processes.values());
+            
             processes.clear();
+        }
+        
+        for (LocalProcess process : runningProcs) {
+            try {
+                process.kill();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         monitor.requestCleanup();
@@ -195,6 +203,17 @@ public class LaunchAgent implements LaunchAgentService {
         wait();
     }
 
+
+
+    /**
+     * @param exitValue
+     */
+    public synchronized void onProcessExit(LocalProcess process, int exitValue) {
+        LOG.info(process + " exited with: " + exitValue);
+        processes.remove(process.getPid());
+        
+    }
+    
     /**
      * Clears the launchers local resource cache.
      * 
@@ -255,7 +274,7 @@ public class LaunchAgent implements LaunchAgentService {
         this.meshKeeper = meshKeeper;
     }
 
-    public Map<Integer, LocalProcess> getProcesses() {
+    private Map<Integer, LocalProcess> getProcesses() {
         return processes;
     }
 
@@ -381,13 +400,5 @@ public class LaunchAgent implements LaunchAgentService {
             cleanupRequested = true;
             notify();
         }
-    }
-
-    /**
-     * @param exitValue
-     */
-    public synchronized void onProcessExit(LocalProcess process, int exitValue) {
-        LOG.info(process + " exited with: " + exitValue);
-        processes.remove(process.getPid());
     }
 }
