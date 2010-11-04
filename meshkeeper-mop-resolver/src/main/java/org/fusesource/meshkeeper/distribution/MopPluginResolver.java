@@ -116,6 +116,7 @@ public class MopPluginResolver implements PluginResolver {
             //Add in meshkeeper repos:
             repositories.put("meshkeeper.release", "http://meshkeeper.fusesource.org/repo/release");
             repositories.put("meshkeeper.snapshot", "http://meshkeeper.fusesource.org/repo/snapshot");
+            MOP_REPO.setIncludeOptional(true);
 
         }
         return MOP_REPO;

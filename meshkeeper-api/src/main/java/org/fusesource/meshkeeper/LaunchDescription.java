@@ -20,6 +20,7 @@ import org.fusesource.meshkeeper.Expression;
 import org.fusesource.meshkeeper.MeshKeeper.Launcher;
 import org.fusesource.meshkeeper.classloader.ClassLoaderFactory;
 import org.fusesource.meshkeeper.launcher.LocalProcess;
+import org.fusesource.meshkeeper.util.internal.ProcessSupport;
 
 import java.io.File;
 import java.io.Serializable;
@@ -47,7 +48,7 @@ public class LaunchDescription implements Serializable {
     HashMap<String, Expression> environment;
     Expression.FileExpression workingDirectory;
     ArrayList<LaunchTask> preLaunchTasks = new ArrayList<LaunchTask>();
-
+    
     public LaunchDescription add(String... values) {
         return add(string(values));
     }
@@ -247,5 +248,55 @@ public class LaunchDescription implements Serializable {
 
     public ArrayList<LaunchTask> getPreLaunchTasks() {
         return preLaunchTasks;
+    }
+
+    public List<String> evaluate(Properties processProperties) {
+        // Evaluate the command...
+        List<String> cmdList = new ArrayList<String>(getCommand().size());
+        for (Expression expression : getCommand()) {
+
+            String arg = expression.evaluate(processProperties);
+
+            //Skip empty args
+            if (arg == null || arg.length() == 0) {
+                continue;
+            }
+            
+            cmdList.add(arg);
+
+        }
+
+        return cmdList;
+    }
+    
+    public String evaluateCommandLine(Properties processProperties) {
+        // Evaluate the command...
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (Expression expression : getCommand()) {
+
+            String arg = expression.evaluate(processProperties);
+
+            //Skip empty args
+            if (arg == null || arg.length() == 0) {
+                continue;
+            }
+            
+            if(!first) {
+                builder.append(" ");
+            } else {
+                first = false;
+            }
+            
+            if(ProcessSupport.isWindows()) {
+                builder.append("\"");
+                builder.append(arg);
+                builder.append("\"");
+            } else {
+                builder.append(arg);
+            }
+        }
+
+        return builder.toString();
     }
 }

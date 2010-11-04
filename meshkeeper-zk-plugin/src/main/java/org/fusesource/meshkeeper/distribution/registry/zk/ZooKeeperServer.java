@@ -41,7 +41,15 @@ public class ZooKeeperServer implements ControlService {
   private String directory = "zookeeper-server-data";
   private boolean purge;
   private String serviceUri;
-  int tick = 10000;
+  int tick = 2000;
+
+  public int getTick() {
+    return tick;
+  }
+
+  public void setTick(int tick) {
+    this.tick = tick;
+  }
 
   private NIOServerCnxn.Factory serverFactory;
 

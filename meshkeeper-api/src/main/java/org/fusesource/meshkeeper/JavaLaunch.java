@@ -44,7 +44,7 @@ import static org.fusesource.meshkeeper.Expression.*;
 public class JavaLaunch {
 
     private Expression jvm = string("java");
-    Expression classpath;
+    PathExpression classpath;
     FileExpression workingDir;
     Expression mainClass;
     ArrayList<Expression> jvmArgs = new ArrayList<Expression>();
@@ -205,6 +205,31 @@ public class JavaLaunch {
     public void setBootstrapClassLoaderFactory(String bootStrapClassLoaderFactoryPath) {
         this.bootStrapClassLoaderFactoryPath = bootStrapClassLoaderFactoryPath;
     }
+    
+    /**
+     * Sets the classpath for the {@link JavaLaunch}. The classpath when set is
+     * appended to the bootstrap classpath (when present).
+     * 
+     * @param classpath
+     *            An expression that can be resolved to a classpath
+     * @return The working directory for the launch.
+     */
+    public void setClasspath(PathExpression classpath) {
+        this.classpath = (PathExpression) classpath;
+    }
+    
+
+    /**
+     * Sets the classpath for the {@link JavaLaunch}. The classpath when set is
+     * appended to the bootstrap classpath (when present).
+     * 
+     * @param classpath
+     *            An expression that can be resolved to a classpath
+     * @return The working directory for the launch.
+     */
+    public void setClasspath(FileExpression classpath) {
+        this.classpath = path(classpath);
+    }
 
     /**
      * Sets the classpath for the {@link JavaLaunch}. The classpath when set is
@@ -215,9 +240,9 @@ public class JavaLaunch {
      * @return The working directory for the launch.
      */
     public void setClasspath(Expression classpath) {
-        this.classpath = classpath;
+        this.classpath = path(file(classpath));
     }
-
+    
     /**
      * Sets the classpath for the {@link JavaLaunch}. The classpath when set is
      * appended to the bootstrap classpath (when present).

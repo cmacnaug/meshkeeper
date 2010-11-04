@@ -22,6 +22,7 @@ import org.fusesource.meshkeeper.control.ControlServer;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
 import org.fusesource.meshkeeper.distribution.provisioner.ProvisionerFactory;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner.MeshProvisioningException;
+import org.fusesource.meshkeeper.util.internal.FileSupport;
 
 import junit.framework.TestCase;
 
@@ -63,6 +64,37 @@ public class MeshKeeperProvisionerTest extends TestCase {
 
         assertNotNull(expected);
     }
+    
+    
+    public void testSpawnedControlServerDiscoverable() throws Exception {
+      File dataDir = MavenTestSupport.getDataDirectory(this.getClass().getSimpleName());
+      dataDir = new File(dataDir + File.separator + "spawnTest");
+      FileSupport.recursiveDelete(dataDir);
+      
+      Provisioner provisioner = new ProvisionerFactory().create("embedded:" + dataDir.toURI() + "?spawn=true");
+      
+      
+      try {
+        provisioner.deploy();
+        assertTrue("Provisioner did non deploy", provisioner.isDeployed());
+        
+        MeshKeeper mesh = MeshKeeperFactory.createMeshKeeper(provisioner.findMeshRegistryUri());
+        mesh.destroy();
+        
+      } finally {
+          //Destroy Server we should no longer be able to find it:
+        provisioner.unDeploy(true);
+      }
+
+      MeshProvisioningException expected = null;
+      try {
+          provisioner.findMeshRegistryUri();
+      } catch (MeshProvisioningException e) {
+          expected = e;
+      }
+
+      assertNotNull(expected);
+  }
 
     // public void testCloudmixProvisionerInstantiation() throws Exception {
     //     Provisioner provisioner = new ProvisionerFactory().create("cloudmix:http://localhost:8181");

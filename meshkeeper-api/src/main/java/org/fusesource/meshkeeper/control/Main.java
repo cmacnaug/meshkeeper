@@ -33,6 +33,13 @@ import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
  */
 public class Main {
 
+    public static String JMS_SWITCH = "--jms";
+    public static String DIRECTORY_SWITCH = "--directory";
+    public static String PROVISIONER_ID_SWITCH = "--provisionerId";
+    public static String REPOSITORY_SWITCH = "--repository";
+    public static String REGISTRY_SWITCH = "--registry";
+    public static String START_EMBEDDED_AGENT = "--startLaunchAgent";
+    
     private static final void showUsage() {
         System.out.println("Usage:");
         System.out.println("Args:");
@@ -67,6 +74,7 @@ public class Main {
             System.setProperty("meshkeeper.application", Main.class.getName());
         }
 
+        boolean startEmbeddedAgent = false;
         String jms = ControlServer.DEFAULT_JMS_URI;
         String registry = ControlServer.DEFAULT_REGISTRY_URI;
         String repository = null;
@@ -79,22 +87,24 @@ public class Main {
                 if (arg.equals("--help") || arg.equals("-h")) {
                     showUsage();
                     return;
-                } else if (arg.equals("--jms")) {
-                    assertHasAdditionalArg(alist, "Expected uri after --jms");
+                } else if (arg.equals(JMS_SWITCH)) {
+                    assertHasAdditionalArg(alist, "Expected uri after " + JMS_SWITCH);
                     jms = alist.removeFirst();
-                } else if (arg.equals("--directory")) {
-                    assertHasAdditionalArg(alist, "Directory expected after --directory");
+                } else if (arg.equals(DIRECTORY_SWITCH)) {
+                    assertHasAdditionalArg(alist, "Directory expected after " + DIRECTORY_SWITCH);
                     directory = alist.removeFirst();
-                } else if (arg.equals("--registry")) {
-                    String message = "Expected uri after --registry";
+                } else if (arg.equals(REGISTRY_SWITCH)) {
+                    String message = "Expected uri after " + REGISTRY_SWITCH;
                     assertHasAdditionalArg(alist, message);
                     registry = alist.removeFirst();
-                } else if (arg.equals("--repository")) {
-                    assertHasAdditionalArg(alist, "Expected url after --repository");
+                } else if (arg.equals(REPOSITORY_SWITCH)) {
+                    assertHasAdditionalArg(alist, "Expected url after " + REPOSITORY_SWITCH);
                     repository = alist.removeFirst();
-                } else if (arg.equals("--provisionerId")) {
-                    assertHasAdditionalArg(alist, "Expected provisionerId after --provisionerId");
+                } else if (arg.equals(PROVISIONER_ID_SWITCH)) {
+                    assertHasAdditionalArg(alist, "Expected provisionerId after " + PROVISIONER_ID_SWITCH);
                     System.setProperty(Provisioner.MESHKEEPER_PROVISIONER_ID_PROPERTY, alist.removeFirst());
+                } else if (arg.equals(START_EMBEDDED_AGENT)) {
+                    startEmbeddedAgent = true;
                 } else {
                     throw new UsageException("Unexpected argument: " + arg);
                 }
@@ -116,6 +126,7 @@ public class Main {
             server.setJmsUri(jms);
             server.setRepositoryUri(repository);
             server.setRegistryUri(registry);
+            server.setStartEmbeddedAgent(startEmbeddedAgent);
             server.start();
             server.join();
             System.out.println("Control Server Exited");

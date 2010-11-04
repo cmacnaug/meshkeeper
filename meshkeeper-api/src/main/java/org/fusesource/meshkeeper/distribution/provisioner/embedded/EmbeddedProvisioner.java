@@ -16,18 +16,12 @@
  */
 package org.fusesource.meshkeeper.distribution.provisioner.embedded;
 
-import static org.fusesource.meshkeeper.control.ControlServer.ControlEvent.SHUTDOWN;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Properties;
 
-import org.fusesource.meshkeeper.MeshEvent;
-import org.fusesource.meshkeeper.MeshKeeper;
 import org.fusesource.meshkeeper.MeshKeeperFactory;
-import org.fusesource.meshkeeper.control.ControlServer;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
 
 /**
@@ -42,13 +36,16 @@ import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
  */
 public class EmbeddedProvisioner implements Provisioner {
 
-    private static EmbeddedServer EMBEDDED_SERVER;
+    private static LocalServer SERVER;
     private static final Object SYNC = new Object();
     private boolean machineOwnerShip;
     private String deploymentUri;
     private int registryPort = 0;
-    private long provisioningTimeout = -1;
-
+    private long provisioningTimeout = 30000;
+    private boolean spawn = false;
+    private boolean createWindow = true;
+    private boolean pauseWindow = false;
+    
     /*
      * (non-Javadoc)
      * 
@@ -56,17 +53,30 @@ public class EmbeddedProvisioner implements Provisioner {
      */
     public void deploy() throws MeshProvisioningException {
         synchronized (SYNC) {
-            if (EMBEDDED_SERVER == null) {
-                EMBEDDED_SERVER = new EmbeddedServer();
+            if (SERVER == null) {
+                if(spawn) {
+                    SERVER = new SpawnedServer();
+                }
+                else {
+                    SERVER = new EmbeddedServer();
+                }
+                
                 try {
-                    EMBEDDED_SERVER.setDataDirectory(getControlServerDirectory());
-                    EMBEDDED_SERVER.setRegistryPort(registryPort);
-                    EMBEDDED_SERVER.start();
+                    configure(SERVER);
+                    SERVER.start();
                 } catch (Exception e) {
                     throw new MeshProvisioningException("Error starting embedded server", e);
                 }
             }
         }
+    }
+
+    private void configure(LocalServer server) throws MeshProvisioningException {
+        server.setRegistryPort(registryPort);
+        server.setCreateWindow(createWindow);
+        server.setProvisioningTimeout(provisioningTimeout);
+        server.setServerDirectory(getControlServerDirectory());
+        server.setPauseWindow(pauseWindow);
     }
 
     /*
@@ -76,34 +86,15 @@ public class EmbeddedProvisioner implements Provisioner {
      */
     public void unDeploy(boolean force) throws MeshProvisioningException {
         synchronized (SYNC) {
-            if (EMBEDDED_SERVER != null) {
+            if (isDeployed()) {
                 try {
-                    EMBEDDED_SERVER.stop();
-                    EMBEDDED_SERVER = null;
+                    SERVER.stop();
+                    SERVER = null;
                 } catch (Exception e) {
                     throw new MeshProvisioningException("Error starting embedded server", e);
                 }
             }
-            //Might be running elsewhere:
-            else {
-                MeshKeeper mesh = null;
-                try {
-                    mesh = MeshKeeperFactory.createMeshKeeper(findMeshRegistryUri());
-                    mesh.eventing().sendEvent(new MeshEvent(SHUTDOWN.ordinal(), this.getClass().getSimpleName(), null), ControlServer.CONTROL_TOPIC);
-
-                    File f = new File(MeshKeeperFactory.getDefaultServerDirectory(), ControlServer.CONTROLLER_PROP_FILE_NAME);
-                    long timeout = System.currentTimeMillis() + 5000;
-                    while (System.currentTimeMillis() < timeout && f.exists()) {
-                        Thread.sleep(500);
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new MeshProvisioningException("interrupted", ie);
-                } catch (Exception e) {
-
-                }
-
-            }
+            
         }
     }
 
@@ -113,19 +104,14 @@ public class EmbeddedProvisioner implements Provisioner {
      * @see org.fusesource.meshkeeper.MeshProvisioner#findMeshRegistryUri()
      */
     public String findMeshRegistryUri() throws MeshProvisioningException {
-        if (EMBEDDED_SERVER != null) {
-            return EMBEDDED_SERVER.getRegistryUri();
+        if (SERVER != null) {
+            return SERVER.getRegistryUri();
         } else {
-            try {
-                Properties p = getFileProps();
-                String registryUri = p.getProperty(MeshKeeperFactory.MESHKEEPER_REGISTRY_PROPERTY);
-                if (registryUri != null) {
-                    return registryUri;
-                }
-
-            } catch (Exception e) {
-            }
-            throw new MeshProvisioningException("Embedded Server not started");
+            
+            SpawnedServer server = new SpawnedServer();
+            configure(server);
+            
+            return server.getRegistryUri();
         }
     }
 
@@ -176,7 +162,7 @@ public class EmbeddedProvisioner implements Provisioner {
             buffer = new StringBuffer(512);
         }
 
-        if (EMBEDDED_SERVER != null) {
+        if (SERVER != null) {
             buffer.append("Embedded MeshKeeper is deployed at: " + findMeshRegistryUri());
         } else {
             buffer.append("Embedded MeshKeeper is not deployed\n");
@@ -191,34 +177,25 @@ public class EmbeddedProvisioner implements Provisioner {
      * @see org.fusesource.meshkeeper.MeshProvisioner#isDeployed()
      */
     public synchronized boolean isDeployed() throws MeshProvisioningException {
-        if (EMBEDDED_SERVER != null) {
+        if (SERVER != null) {
             return true;
         }
         //Possible that this is deployed locally in another process.
         else if (deploymentUri != null) {
 
-            MeshKeeper mesh = null;
-            try {
-                //See if we can connect:
-                mesh = MeshKeeperFactory.createMeshKeeper(findMeshRegistryUri());
+            SpawnedServer server = new SpawnedServer();
+            configure(server);
+            
+            //If a spawned server is started we'll use it:
+            if(server.isStarted()) {
+                SERVER = server;
                 return true;
-            } catch (Exception e) {
-                return false;
-            } finally {
-                if (mesh != null) {
-                    try {
-                        mesh.destroy();
-                    } catch (Exception e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
             }
         }
         return false;
     }
 
-    File getControlServerDirectory() throws Exception {
+    File getControlServerDirectory() throws MeshProvisioningException {
         if (deploymentUri != null) {
             return new File(deploymentUri);
         } else {
@@ -226,25 +203,7 @@ public class EmbeddedProvisioner implements Provisioner {
         }
     }
 
-    private Properties getFileProps() throws Exception {
-        File propFile = new File(getControlServerDirectory(), ControlServer.CONTROLLER_PROP_FILE_NAME);
-
-        if (propFile.exists()) {
-            Properties props = new Properties();
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(propFile);
-                props.load(fis);
-            } finally {
-                if (fis != null) {
-                    fis.close();
-                }
-            }
-            return props;
-        }
-
-        return null;
-    }
+   
 
     /*
      * (non-Javadoc)
@@ -274,6 +233,22 @@ public class EmbeddedProvisioner implements Provisioner {
         // No-Op we'll always go local
     }
 
+    /**
+     * Indicates that if the control server is not running it should be spawned. 
+     * @param spawn true if a control server should be spawned
+     */
+    public void setSpawn(boolean spawn) {
+        this.spawn = spawn;
+    }
+    
+    /**
+     * Indicates that if the control server is not running it should be spawned. 
+     * @param spawn true if a control server should be spawned
+     */
+    public boolean getSpawn() {
+        return spawn;
+    }
+    
     /*
      * (non-Javadoc)
      * 
@@ -355,7 +330,20 @@ public class EmbeddedProvisioner implements Provisioner {
      *            online.
      */
     public void setProvisioningTimeout(long provisioningTimeout) {
-	this.provisioningTimeout = provisioningTimeout;
+        this.provisioningTimeout = provisioningTimeout;
+    }
+
+    /**
+     * When spawning a new process this indicates whether it should be launched in a new window
+     * 
+     * @param createWindow
+     */
+    public void setCreateWindow(boolean createWindow) {
+        this.createWindow  = createWindow;
+    }
+
+    public void setPauseWindow(boolean pauseWindow) {
+        this.pauseWindow = pauseWindow;
     }
 
 }

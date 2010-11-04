@@ -34,6 +34,7 @@ import org.fusesource.meshkeeper.MeshKeeper;
 import org.fusesource.meshkeeper.MeshKeeperFactory;
 import org.fusesource.meshkeeper.MeshProcess;
 import org.fusesource.meshkeeper.MeshProcessListener;
+import org.fusesource.meshkeeper.RegistryWatcher;
 import org.fusesource.meshkeeper.util.internal.FileSupport;
 
 /**
@@ -90,7 +91,7 @@ public class LaunchAgent implements LaunchAgentService {
     }
 
     public MeshProcess launch(LaunchDescription launchDescription, String sourceRegistryPath, MeshProcessListener handler) throws Exception {
-        checkForRogueProcesses(10000);
+        checkForRogueProcesses();
         synchronized (this) {
             if(!started) {
                 throw new IllegalStateException("Agent is not started");
@@ -285,7 +286,7 @@ public class LaunchAgent implements LaunchAgentService {
     /**
      * @param timeout
      */
-    public void checkForRogueProcesses(int timeout) {
+    public void checkForRogueProcesses() {
         ArrayList<LocalProcess> runningProcs = null;
         synchronized (this) {
             runningProcs = new ArrayList<LocalProcess>(processes.size());
@@ -328,7 +329,7 @@ public class LaunchAgent implements LaunchAgentService {
 
     }
 
-    private class Monitor implements Runnable {
+    private class Monitor implements Runnable, RegistryWatcher {
         Log log = LogFactory.getLog(this.getClass());
         private final LaunchAgent processLauncher;
 
@@ -340,15 +341,18 @@ public class LaunchAgent implements LaunchAgentService {
             this.processLauncher = processLauncher;
         }
 
-        public void start() {
+        public void start() throws Exception {
             tempDirectory = processLauncher.getDirectory() + File.separator + processLauncher.getAgentId() + File.separator + "temp";
             thread = new Thread(this, processLauncher.getAgentId() + "-Process Monitor");
             thread.start();
+            processLauncher.getMeshKeeper().registry().addRegistryWatcher(MeshKeeper.Launcher.LAUNCHER_REGISTRY_PATH, this);
         }
 
-        public void stop() {
+        
+        public void stop() throws Exception{
             thread.interrupt();
             try {
+                processLauncher.getMeshKeeper().registry().removeRegistryWatcher(MeshKeeper.Launcher.LAUNCHER_REGISTRY_PATH, this);
                 thread.join();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -364,7 +368,7 @@ public class LaunchAgent implements LaunchAgentService {
                         cleanupRequested = true;
                         return;
                     } finally {
-                        processLauncher.checkForRogueProcesses(15000);
+                        processLauncher.checkForRogueProcesses();
                         if (cleanupRequested) {
                             cleanUpTempFiles();
                             cleanupRequested = false;
@@ -399,6 +403,11 @@ public class LaunchAgent implements LaunchAgentService {
         public synchronized void requestCleanup() {
             cleanupRequested = true;
             notify();
+        }
+
+        public void onChildrenChanged(String path, List<String> children) {
+            log.info("Detected launcher change: " + children.toString());
+            checkForRogueProcesses();
         }
     }
 }

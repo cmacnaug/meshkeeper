@@ -30,8 +30,21 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ProcessSupport {
 
+    
+    
     static final private AtomicLong ID_GENERATOR = new AtomicLong(0);
 
+    
+    static final boolean IS_WINDOWS;
+    
+    static{
+        IS_WINDOWS = System.getProperty("os.name").toLowerCase().indexOf("windows") > -1;
+    }
+    
+    public static final boolean isWindows() {
+        return IS_WINDOWS;
+    }
+    
     static private String getNextAnonymousId() {
         return "anonymous:" + ID_GENERATOR.incrementAndGet();
     }

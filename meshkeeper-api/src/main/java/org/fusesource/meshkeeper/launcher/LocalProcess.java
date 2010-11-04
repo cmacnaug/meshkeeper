@@ -16,6 +16,14 @@
  */
 package org.fusesource.meshkeeper.launcher;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.Expression;
@@ -26,17 +34,10 @@ import org.fusesource.meshkeeper.MeshProcessListener;
 import org.fusesource.meshkeeper.MeshKeeper.DistributionRef;
 import org.fusesource.meshkeeper.util.internal.ProcessSupport;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
  * @version $Revision: 1.1 $
  */
-public class LocalProcess implements MeshProcess {
+public class LocalProcess implements MeshProcess{
 
     Log log = LogFactory.getLog(this.getClass());
     int FD_STD_IN = 0;
@@ -116,32 +117,7 @@ public class LocalProcess implements MeshProcess {
             log.debug("Evaluating launch command with properties: " + processProperties);
         }
 
-        // Evaluate the command...
-        List<String> cmdList = new ArrayList<String>(ld.getCommand().size());
-        StringBuilder command_line = new StringBuilder();
-        boolean first = true;
-        for (Expression expression : ld.getCommand()) {
-
-            String arg = expression.evaluate(processProperties);
-
-            //Skip empty args
-            if (arg == null || arg.length() == 0) {
-                continue;
-            }
-
-            if (!first) {
-                command_line.append(" ");
-            }
-            first = false;
-
-            cmdList.add(arg);
-
-            command_line.append('\'');
-            command_line.append(arg);
-            command_line.append('\'');
-        }
-
-        String[] cmdArray = cmdList.toArray(new String[] {});
+        String [] cmdArray = ld.evaluate(processProperties).toArray(new String[]{});
 
         // Evaluate the enviorment...
         String[] env = null;
@@ -163,7 +139,7 @@ public class LocalProcess implements MeshProcess {
         workingDirectory.mkdirs();
 
         //Generate the launch string
-        String msg = "Launching as: " + command_line + " [pid = " + pid + "] [workDir = " + workingDirectory + "]";
+        String msg = "Launching as: " + ld.evaluateCommandLine(processProperties) + " [pid = " + pid + "] [workDir = " + workingDirectory + "]";
         log.info(msg);
         if (listener != null) {
             listener.onProcessInfo(msg);
@@ -290,9 +266,10 @@ public class LocalProcess implements MeshProcess {
             super.close();
         }
     }
-
+    
     public String toString() {
         return "Process: [" + pid + "] owner: " + getOwnerRegistryPath();
     }
+
 
 }

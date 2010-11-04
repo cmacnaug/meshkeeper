@@ -20,11 +20,12 @@ import java.io.File;
 
 import org.fusesource.meshkeeper.MeshKeeperFactory;
 import org.fusesource.meshkeeper.control.ControlServer;
+import org.fusesource.meshkeeper.distribution.provisioner.Provisioner.MeshProvisioningException;
 
 /**
  * @author chirino
  */
-public class EmbeddedServer {
+public class EmbeddedServer implements LocalServer {
 
     ControlServer controlServer;
     File dataDirectory;
@@ -36,11 +37,16 @@ public class EmbeddedServer {
         return dataDirectory;
     }
 
-    public void setDataDirectory(File dataDirectory) {
+    public void setServerDirectory(File dataDirectory) {
         this.dataDirectory = dataDirectory;
     }
 
-    public void start() throws Exception {
+
+    public boolean isStarted() {
+        return registryURI != null;
+    }
+    
+    public void start() throws MeshProvisioningException {
         // We need to start up..
         if (registryURI != null) {
             return;
@@ -49,15 +55,29 @@ public class EmbeddedServer {
             if (dataDirectory == null) {
                 dataDirectory = MeshKeeperFactory.getDefaultServerDirectory();
             }
-            controlServer = MeshKeeperFactory.createControlServer(registryURI, dataDirectory);
-            registryURI = controlServer.getRegistryConnectUri();
-            
-            //Add embedded agent to control server:
-            controlServer.setEmbeddedLaunchAgent(MeshKeeperFactory.createAgent(controlServer.getMeshKeeper(), dataDirectory));
+            try {
+                
+                controlServer = MeshKeeperFactory.createControlServer(registryURI, dataDirectory);
+                registryURI = controlServer.getRegistryConnectUri();
+                
+                //Add embedded agent to control server:
+                controlServer.setEmbeddedLaunchAgent(MeshKeeperFactory.createAgent(controlServer.getMeshKeeper(), dataDirectory));
+            }
+            catch (Exception e) {
+                try {
+                    controlServer.destroy();
+                }
+                catch (Throwable thrown) {
+                    thrown.printStackTrace();
+                }
+                
+                throw new MeshProvisioningException(e.getMessage(), e);
+                
+            }
         }
     }
 
-    public void stop() throws Exception {
+    public void stop() throws MeshProvisioningException {
         Exception first = null;
 
         try {
@@ -67,6 +87,10 @@ public class EmbeddedServer {
         } finally {
             controlServer = null;
             registryURI = null;
+        }
+        
+        if(first != null) {
+            throw new MeshProvisioningException("Error stopping embedded server", first);
         }
     }
 
@@ -84,4 +108,17 @@ public class EmbeddedServer {
     public void setRegistryPort(int registryPort) {
         this.registryPort = registryPort;
     }
+
+    public void setCreateWindow(boolean createWindow) {
+        // Noop
+    }
+
+    public void setProvisioningTimeout(long timeout) {
+        // Noop
+    }
+
+    public void setPauseWindow(boolean pauseWindow) {
+        // Noop
+    }
+
 }

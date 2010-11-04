@@ -49,6 +49,9 @@ public class MeshKeeperFactory extends org.fusesource.meshkeeper.MeshKeeperFacto
         if (directory != null) {
             System.setProperty(MESHKEEPER_BASE_PROPERTY, directory.getAbsolutePath());
         }
+        if(provisionerUri != null) {
+            System.setProperty(MESHKEEPER_PROVISIONER_PROPERTY, provisionerUri);
+        }
         meshKeeper = super.createMeshKeeper();
         
         //Add additional repositories:

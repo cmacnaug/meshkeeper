@@ -312,7 +312,7 @@ public class PluginClassLoader extends URLClassLoader {
         loadArtifact(PluginResolver.PROJECT_GROUP_ID + ":meshkeeper-" + key + "-plugin:" + version);
     }
 
-    private static String getDefaultPluginVersion() {
+    public static String getDefaultPluginVersion() {
         String rc = System.getProperty(PluginResolver.KEY_DEFAULT_PLUGINS_VERSION);
         if (rc != null) {
             return rc;

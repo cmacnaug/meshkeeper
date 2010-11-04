@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
@@ -90,6 +91,20 @@ abstract public class Expression implements Serializable {
             rc[i] = file(value[i]);
         }
         return rc;
+    }
+    
+    /**
+     * Tokenizes the given string using the current systems path separator, and returns
+     * a PathExpression
+     * 
+     * @param path a PathExpression
+     */
+    public static PathExpression path(String path) {
+        LinkedList<FileExpression> pathElements = new LinkedList<FileExpression>();
+        for(String pe : path.split(File.pathSeparator)) {
+            pathElements.add(file(pe));
+        }
+        return path(pathElements);
     }
 
     public static PathExpression path(List<FileExpression> list) {
