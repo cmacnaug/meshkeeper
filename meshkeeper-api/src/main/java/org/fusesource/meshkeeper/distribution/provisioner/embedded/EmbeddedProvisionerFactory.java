@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
 import org.fusesource.meshkeeper.distribution.provisioner.ProvisionerFactory;
+import org.fusesource.meshkeeper.spring.MeshKeeperFactory;
 
 /**
  * EmbeddedProvisionerFactory
@@ -44,6 +45,7 @@ public class EmbeddedProvisionerFactory extends ProvisionerFactory {
      */
     @Override
     protected Provisioner createPlugin(String uri) throws Exception {
+        System.out.println(this.getClass().getName() + " createPlugin " + System.getProperty(MeshKeeperFactory.MESHKEEPER_REGISTRY_PROPERTY));
         EmbeddedProvisioner provisioner = new EmbeddedProvisioner();
         LOG.info("Creating embedded provisioner from " + uri);
         uri = super.applyQueryParameters(provisioner, new URI(uri)).toString().trim();

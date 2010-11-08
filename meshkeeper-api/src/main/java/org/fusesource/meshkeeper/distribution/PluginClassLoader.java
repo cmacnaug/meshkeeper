@@ -18,6 +18,7 @@ package org.fusesource.meshkeeper.distribution;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -327,6 +328,24 @@ public class PluginClassLoader extends URLClassLoader {
         final String DEFAULT_VERSION = "LATEST";
         try {
             Properties p = loadProperties(PluginClassLoader.class.getClassLoader(), pomProps);
+            
+            //Look for this in eclipse (for dev)
+            if(p == null) {
+                try {
+                    URL location = PluginClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
+                    if(location.getProtocol().equals("file")) {
+                        File f = new File(location.getFile() + File.separator + ".." + File.separator + "maven-archiver" + File.separator + "pom.properties");
+                        if(f.exists()) {
+                            p = new Properties();
+                            p.load(new FileInputStream(f));
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    
+                }
+            }
+            
             if (p != null) {
                 return p.getProperty("version", DEFAULT_VERSION);
             }

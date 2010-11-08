@@ -19,6 +19,8 @@ package org.fusesource.meshkeeper;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.MeshKeeper.Launcher;
 import org.fusesource.meshkeeper.control.ControlServer;
 import org.fusesource.meshkeeper.distribution.DistributorFactory;
@@ -35,7 +37,8 @@ import org.fusesource.meshkeeper.util.internal.MeshKeeperWrapper;
  * @author chirino
  */
 public class MeshKeeperFactory {
-
+    private static final Log LOG = LogFactory.getLog(MeshKeeperFactory.class);
+    
     /**
      * Constant signifying that MeshKeeper should be deployed in embedded mode
      */
@@ -189,9 +192,14 @@ public class MeshKeeperFactory {
     
     protected static MeshKeeper createMeshKeeperInternal(String registryUri, String dataDir, String centralRepoUri) throws Exception
     {
-	if ("provisioned".equals(registryUri)) {
-	    registryUri = PROVISIONING_TRACKER.getProvisioner().findMeshRegistryUri();
-        } else if ("provision".equals(registryUri) || "embedded".equals(registryUri)) {
+        if (PROVISIONED.equals(registryUri)) {
+            LOG.info("Finding provisioned meshkeeper with " + System.getProperty(MESHKEEPER_PROVISIONER_PROPERTY));
+            registryUri = PROVISIONING_TRACKER.getProvisioner().findMeshRegistryUri();
+            if(LOG.isDebugEnabled()) {
+                LOG.info("Finding provisioned meshkeeper.");
+            }
+        } else if (PROVISION.equals(registryUri) || EMBEDDED.equals(registryUri)) {
+            LOG.info("Provisioning meshkeeper with " + System.getProperty(MESHKEEPER_PROVISIONER_PROPERTY, "embedded"));
             // We wrap it so we know when we can stop the embedded registry.
             return new MeshKeeperWrapper(createMeshKeeper(PROVISIONING_TRACKER.acquireProvisioned())) {
                 AtomicBoolean destroyed = new AtomicBoolean(false);
@@ -357,6 +365,7 @@ public class MeshKeeperFactory {
         public synchronized Provisioner getProvisioner() throws Exception {
             if (provisioner == null) {
                 String provisionerUri = System.getProperty(MESHKEEPER_PROVISIONER_PROPERTY, "embedded");
+                LOG.info("Loading Provisioner: " + provisionerUri);
                 provisioner = new ProvisionerFactory().create(provisionerUri);
             }
 

@@ -1,3 +1,19 @@
+/**
+ *  Copyright (C) 2009 Progress Software, Inc. All rights reserved.
+ *  http://fusesource.com
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.fusesource.meshkeeper.distribution.provisioner.embedded;
 
 import static org.fusesource.meshkeeper.Expression.file;
@@ -12,6 +28,8 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.JavaLaunch;
 import org.fusesource.meshkeeper.LaunchDescription;
 import org.fusesource.meshkeeper.MeshEvent;
@@ -27,8 +45,10 @@ import org.fusesource.meshkeeper.util.internal.ProcessSupport;
 //import static Expression.file;
 public class SpawnedServer implements LocalServer{
 
+    private static Log LOG = LogFactory.getLog(SpawnedServer.class);
     private long provisioningTimeout = 10000;
     private boolean started = false;
+    private boolean startLaunchAgent = true;
     private boolean createWindow = true;
     private boolean pauseWindow = true;
     private String registryUri;
@@ -83,6 +103,7 @@ public class SpawnedServer implements LocalServer{
                 log4jConf=u.toString();
             }
         }
+        
         if(log4jConf != null) {
             jl.addSystemProperty("log4j.configuration", log4jConf);
             //jl.addSystemProperty("log4j.debug", "true");
@@ -92,7 +113,9 @@ public class SpawnedServer implements LocalServer{
         jl.setMainClass(Main.class.getName());
         jl.addArgs(Main.DIRECTORY_SWITCH).addArgs(file(serverDirectory.toString()));
         jl.addArgs(Main.REGISTRY_SWITCH, "zk:tcp://0.0.0.0:" + registryPort);
-        jl.addArgs(Main.START_EMBEDDED_AGENT);
+        if(startLaunchAgent) {
+          jl.addArgs(Main.START_EMBEDDED_AGENT);
+        }
         
         
         LaunchDescription ld = jl.toLaunchDescription();
@@ -100,22 +123,16 @@ public class SpawnedServer implements LocalServer{
         
         LinkedList<String> cmdList = new LinkedList<String>(ld.evaluate(new Properties()));
         
-        if(createWindow) {
-            //Look for command to launch in window:
-            if(!ProcessSupport.isWindows()) {
-                cmdList.addLast("&");
-            }
-        }
-        
         String [] cmdArray = cmdList.toArray(new String[]{});
         String command = "";
         try {
             command = ld.evaluateCommandLine(System.getProperties());
-            
-            //If it's windows dump the command to script into a script:
-            if(createWindow && ProcessSupport.isWindows()) {
+                        
+            //If it's windows dump the command to script into a script and execute
+            if (createWindow && ProcessSupport.isWindows() ) {
+                
                 File batFile = new File(serverDirectory, "meshkeeper.bat");
-                if(batFile.exists()) {
+                if (batFile.exists()) {
                     batFile.delete();
                 }
                 batFile.createNewFile();
@@ -123,22 +140,26 @@ public class SpawnedServer implements LocalServer{
                 writer.write("@echo off\r\n");
                 writer.write("TITLE MeshKeeper\r\n");
                 writer.write(command + "\r\n");
-                if(pauseWindow) {
+                if (isCreateWindow() && pauseWindow) {
                     writer.write("pause\r\n");
                 }
-                cmdArray = new String[] {"START", batFile.getCanonicalPath()};
+                cmdArray = new String[] { "START", batFile.getCanonicalPath() };
                 command = "START " + batFile.getCanonicalPath();
                 writer.flush();
                 writer.close();
-            }
-                    
-            
-            System.out.println("Launching command: " + command);
-            
-            Process proc = Runtime.getRuntime().exec(cmdArray, null, new File(ld.getWorkingDirectory().evaluate()));
-   
-            if(createWindow) {
+                createWindow = true;
+                Process proc = Runtime.getRuntime().exec(cmdArray, null, new File(ld.getWorkingDirectory().evaluate()));
                 proc.waitFor();
+            } else {
+                createWindow = false;
+                Execute e = new Execute(jl.getWorkingDir().evaluate());
+                e.setCommandline(cmdArray);
+                e.spawn();
+            }
+                
+                    
+            if(LOG.isDebugEnabled()) {
+                LOG.debug("Launching command: " + command);
             }
             
             long timeout = System.currentTimeMillis() + provisioningTimeout;
@@ -159,9 +180,6 @@ public class SpawnedServer implements LocalServer{
         catch (Exception ioe) {
             throw new MeshProvisioningException("Unable to spawn meshkeeper control server with command line of " + command, ioe);
         }
-        
-        
-        
     }
 
     public synchronized void stop() throws MeshProvisioningException {
@@ -251,6 +269,14 @@ public class SpawnedServer implements LocalServer{
         this.createWindow = createWindow;
     }
 
+    public void setPauseWindow(boolean pauseWindow) {
+        this.pauseWindow = pauseWindow;
+    }
+    
+    public void setStartLaunchAgent(boolean startLaunchAgent) {
+      this.startLaunchAgent = startLaunchAgent;
+    }
+
     public boolean isStarted() {
         if(started) {
             return true;
@@ -268,7 +294,18 @@ public class SpawnedServer implements LocalServer{
         MeshKeeper mesh = null;
         try {
             //See if we can connect:
-            mesh = MeshKeeperFactory.createMeshKeeper(getRegistryUri());
+            String registryUri = getRegistryUri();
+            String testUri = registryUri;
+            //Modify connect Timeout:
+            if(testUri != null && testUri.startsWith("zk")) {
+                if(testUri.indexOf("?") > 0) {
+                    testUri = testUri + "&amp;connectTimeout=1000";
+                } else {
+                    testUri = testUri + "?connectTimeout=1000";
+                }
+            }
+            
+            mesh = MeshKeeperFactory.createMeshKeeper(testUri);
             started = true;
         } catch (Exception e) {
             registryUri = null;
@@ -278,8 +315,7 @@ public class SpawnedServer implements LocalServer{
                 try {
                     mesh.destroy();
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    LOG.warn("Failed to shutdown test MeshKeeper", e);
                 }
             }
         }
@@ -303,11 +339,6 @@ public class SpawnedServer implements LocalServer{
         } catch (Exception e) {
 
         }
-    }
-
-    public void setPauseWindow(boolean pauseWindow) {
-        this.pauseWindow = pauseWindow;
-        
     }
     
    
