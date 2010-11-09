@@ -154,7 +154,9 @@ class DefaultDistributor implements MeshKeeper {
             return ret;
         } catch (Exception e) {
             PluginCreationException re = new PluginCreationException("Unable to create plugin client from " + factory.getClass().getSimpleName(), e);
-            log.error(re.getMessage(), re);
+            if(log.isDebugEnabled()) {
+                log.debug(re.getMessage(), re);
+            }
             throw re;
         }
     }
@@ -234,7 +236,9 @@ class DefaultDistributor implements MeshKeeper {
                     }
                     catch (Exception e) {
                         RuntimeException re = new RuntimeException("Error creating repository client", e);
-                        log.error(re);
+                        if(log.isDebugEnabled()) {
+                            log.debug(re);
+                        }
                         throw re;
                     }
                 }
@@ -256,7 +260,9 @@ class DefaultDistributor implements MeshKeeper {
                     try {
                         launchClient.start();
                     } catch (Exception e) {
-                        log.warn("Error starting launch client", e);
+                        if(log.isDebugEnabled()) {
+                            log.debug("Error starting launch client", e);
+                        }
                         throw new PluginCreationException("Error starting launch client", e);
                     }
 
