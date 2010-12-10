@@ -44,6 +44,7 @@ public class EmbeddedProvisioner implements Provisioner {
     private long provisioningTimeout = 30000;
     private boolean spawn = false;
     private boolean createWindow = true;
+    private boolean leaveRunning = false;
     private boolean pauseWindow = false;
     
     /*
@@ -86,7 +87,7 @@ public class EmbeddedProvisioner implements Provisioner {
      */
     public void unDeploy(boolean force) throws MeshProvisioningException {
         synchronized (SYNC) {
-            if (isDeployed()) {
+            if (isDeployed() && (force || !isLeaveRunning())) {
                 try {
                     SERVER.stop();
                     SERVER = null;
@@ -344,6 +345,25 @@ public class EmbeddedProvisioner implements Provisioner {
 
     public void setPauseWindow(boolean pauseWindow) {
         this.pauseWindow = pauseWindow;
+    }
+
+    /**
+     * When the meshkeeper is spawned setting this to true will leave
+     * the spawned instance running unless {@link #unDeploy(boolean)} is 
+     * called with true.
+     * 
+     * @param leaveRunning Leave meshkeeper running on exit.
+     */
+    public void setLeaveRunning(boolean leaveRunning) {
+        this.leaveRunning = leaveRunning;
+    }
+
+    /**
+     * When the meshkeeper is spawned setting this to true will leave
+     * the spawned instance running on exit
+     */
+    public boolean isLeaveRunning() {
+        return leaveRunning;
     }
 
 }

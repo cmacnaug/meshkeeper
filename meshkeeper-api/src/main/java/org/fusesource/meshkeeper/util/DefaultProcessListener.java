@@ -127,6 +127,15 @@ public class DefaultProcessListener implements MeshProcessListener {
         return exitCode.get();
     }
 
+    /**
+     * Tests if the process has reported an exit status yet. 
+     * 
+     * @return True if if the process hasn't reported an exit status yet. 
+     */
+    public boolean isRunning() {
+        return exitLatch.getCount() > 0;
+    }
+    
     public int waitForExit(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
         if( exitLatch.await(timeout, unit) )
             return exitCode.get();

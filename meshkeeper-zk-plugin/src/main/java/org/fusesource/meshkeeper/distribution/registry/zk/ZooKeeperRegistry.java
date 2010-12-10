@@ -67,7 +67,7 @@ public class ZooKeeperRegistry extends AbstractRegistryClient {
     private String userid = "guest";
     private String password = "";
     private long connectTimeout = 30000;
-    private int sessionTimeout = 3000;
+    private int sessionTimeout = 10000;
     private ZooKeeper zk;
 
     public ZooKeeper getZooKeeper() {
