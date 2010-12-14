@@ -71,8 +71,38 @@ public class MeshKeeperProvisionerTest extends TestCase {
       dataDir = new File(dataDir + File.separator + "spawnTest");
       FileSupport.recursiveDelete(dataDir);
       
-      Provisioner provisioner = new ProvisionerFactory().create("embedded:" + dataDir.toURI() + "?spawn=true");
+      Provisioner provisioner = new ProvisionerFactory().create("spawn:" + dataDir.toURI());
       
+      
+      try {
+        provisioner.deploy();
+        assertTrue("Provisioner did non deploy", provisioner.isDeployed());
+        
+        MeshKeeper mesh = MeshKeeperFactory.createMeshKeeper(provisioner.findMeshRegistryUri());
+        mesh.destroy();
+        
+      } finally {
+          //Destroy Server we should no longer be able to find it:
+        provisioner.unDeploy(true);
+      }
+
+      MeshProvisioningException expected = null;
+      try {
+          provisioner.findMeshRegistryUri();
+      } catch (MeshProvisioningException e) {
+          expected = e;
+      }
+
+      assertNotNull(expected);
+  }
+    
+    public void testSpawnedControlServerDiscoverableWithFileSpec() throws Exception {
+      File dataDir = MavenTestSupport.getDataDirectory(this.getClass().getSimpleName());
+      dataDir = new File(dataDir + File.separator + "spawnTest");
+      FileSupport.recursiveDelete(dataDir);
+      
+      //As long as foward slashes are used shouldn't need to specify a uri:
+      Provisioner provisioner = new ProvisionerFactory().create("spawn:" + dataDir.getCanonicalFile().toString().replace("\\", "/") + "?createWindow=false");
       
       try {
         provisioner.deploy();
