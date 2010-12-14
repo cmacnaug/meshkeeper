@@ -80,6 +80,15 @@ public class EmbeddedProvisioner implements Provisioner {
         server.setPauseWindow(pauseWindow);
     }
 
+    /**
+     * Forcefully undeploys MeshKeeper
+     * @throws MeshProvisioningException
+     */
+    public void undeploy() throws MeshProvisioningException {
+      //NOTE: This method is fired by introspection via provisioner.Main.
+      unDeploy(true);
+    }
+    
     /*
      * (non-Javadoc)
      * 

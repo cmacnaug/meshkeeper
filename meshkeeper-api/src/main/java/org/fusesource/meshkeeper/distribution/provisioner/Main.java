@@ -4,6 +4,8 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+import org.fusesource.meshkeeper.util.internal.Os;
+
 
 /**
  * Instantiates and runs a provisioner. Useful for utilities like
@@ -30,7 +32,7 @@ public class Main {
         System.out.println("  [-a --action deploy|undeploy] -- specifies the provisioning action to take.");
         System.out.println("");
         System.out.println("Example:");
-        System.out.println("-a undeploy -u spawn:file://c:/meshkeeper/server?spawn=true&amp;createWindow=true");
+        System.out.println("-a undeploy -u spawn:file://c:/meshkeeper/server?leaveRunning=true&amp;createWindow=true");
         
     }
     
@@ -56,7 +58,7 @@ public class Main {
                     assertHasAdditionalArg(alist, "action required");
                     action = alist.removeFirst();
                 } else if (arg.equals("-u") || arg.equals("--uri")) {
-                    assertHasAdditionalArg(alist, "action required");
+                    assertHasAdditionalArg(alist, "uri required");
                     uri = alist.removeFirst();
                 } else {
                     throw new UsageException("Illegal Argument: " + arg);
@@ -67,19 +69,55 @@ public class Main {
                 throw new UsageException("uri cannot be null");
             }
             
+            //Replace backslashes with forward slashes, usefule from ant
+            //on windows where it can be tricky to get absolute paths with 
+            //forward slash file separators
+            if(Os.isFamily(Os.FAMILY_WINDOWS) && System.getProperty("suppress.uri.cleanup") == null) {
+              if(uri.startsWith("spawn") || uri.startsWith("embedded")) {
+                uri = uri.replace('\\', '/');
+              }
+            }
+            
             ProvisionerFactory pf = new ProvisionerFactory();
             Provisioner provisioner = pf.create(uri);
             
             //Look for the action:
-            Method m = provisioner.getClass().getDeclaredMethod(action, new Class [] {});
+            Method m = null;
+            try {
+              m = provisioner.getClass().getDeclaredMethod(action, new Class [] {});
+            }catch (NoSuchMethodException nsme) {
+              //See if there is one that matches case insensitively:
+              for(Method candidate : provisioner.getClass().getDeclaredMethods()) {
+                if(candidate.getParameterTypes().length > 0) {
+                  continue;
+                }
+                
+                if(!candidate.isAccessible()) {
+                  continue;
+                }
+                
+                if(m.getDeclaringClass().getPackage().getName().startsWith("java")) {
+                  continue;
+                }
+                
+                if(candidate.getName().toLowerCase().equals(action.toLowerCase())) {
+                  m = candidate;
+                  break;
+                }
+              }
+              
+              if(m == null) {
+                nsme.fillInStackTrace();
+                throw nsme;
+              }
+            }
+            
             Object o = m.invoke(provisioner, new Object[]{});
             if(o != null) {
                 System.out.println(o);
             }
            
             System.out.println("Provisioned at " + provisioner.findMeshRegistryUri());
-            Runtime.getRuntime().halt(0);
-            System.exit(0);
         }
         catch (Exception e) {
             showUsage();

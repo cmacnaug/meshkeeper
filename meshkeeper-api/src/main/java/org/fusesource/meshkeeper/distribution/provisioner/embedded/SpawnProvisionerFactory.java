@@ -16,7 +16,6 @@
  */
 package org.fusesource.meshkeeper.distribution.provisioner.embedded;
 
-import java.io.File;
 import java.net.URI;
 
 import org.apache.commons.logging.Log;
@@ -45,7 +44,7 @@ public class SpawnProvisionerFactory extends EmbeddedProvisionerFactory {
         //specifying the control server directory)
         if (uri.length() > 0) {
             if (uri != null && uri.trim().length() > 0) {
-                provisioner.setDeploymentUri(new File(new URI(uri)).toString());
+               provisioner.setDeploymentUri(uri);
             }
         }
         //Make sure we're spawning:
