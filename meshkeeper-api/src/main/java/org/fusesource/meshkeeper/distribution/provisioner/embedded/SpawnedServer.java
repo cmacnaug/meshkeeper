@@ -54,7 +54,7 @@ public class SpawnedServer implements LocalServer{
     private String registryUri;
     private File serverDirectory;
     private int registryPort = 0;
-
+    
 
     public synchronized void start() throws MeshProvisioningException  {
         if(isDeployed()) {
@@ -186,6 +186,19 @@ public class SpawnedServer implements LocalServer{
         if(isDeployed()) {
             try {
                 sendShutdownSignal(getRegistryUri());
+                long timeout = System.currentTimeMillis() + provisioningTimeout;
+                while(isDeployed()) {
+                  started = false;
+                  if(System.currentTimeMillis() > timeout) {
+                    throw new MeshProvisioningException("Timed out stopping");
+                  }
+                  try {
+                    Thread.sleep(100);
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new MeshProvisioningException("Interrupted stopping", e);
+                  }
+                }
             }
             finally {
                 started = false;

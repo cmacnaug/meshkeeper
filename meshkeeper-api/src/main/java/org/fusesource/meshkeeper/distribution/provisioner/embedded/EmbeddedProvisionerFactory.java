@@ -52,9 +52,17 @@ public class EmbeddedProvisionerFactory extends ProvisionerFactory {
         
         //Treat the remaining portion if any as a the deployment uri (which be a uri
         //specifying the control server directory)
+        //Treat the remaining portion if any as a the deployment uri (which should be a uri
+        //specifying the control server directory)
         if (uri.length() > 0) {
             if (uri != null && uri.trim().length() > 0) {
+              //Can either be a file uri, or just plain directory:
+              if(uri.startsWith("file")) {
                 provisioner.setDeploymentUri(new File(new URI(uri)).toString());
+              } else {
+                provisioner.setDeploymentUri(uri);
+              }
+               
             }
         }
         
