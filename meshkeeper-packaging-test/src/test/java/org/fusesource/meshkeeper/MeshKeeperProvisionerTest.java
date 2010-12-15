@@ -19,6 +19,7 @@ package org.fusesource.meshkeeper;
 import java.io.File;
 
 import org.fusesource.meshkeeper.control.ControlServer;
+import org.fusesource.meshkeeper.distribution.provisioner.Main;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner;
 import org.fusesource.meshkeeper.distribution.provisioner.ProvisionerFactory;
 import org.fusesource.meshkeeper.distribution.provisioner.Provisioner.MeshProvisioningException;
@@ -126,6 +127,36 @@ public class MeshKeeperProvisionerTest extends TestCase {
       assertNotNull(expected);
   }
 
+  public void testProvisionerMain() throws Exception {
+    File dataDir = MavenTestSupport.getDataDirectory(this.getClass().getSimpleName());
+    dataDir = new File(dataDir + File.separator + "testProvisionerMain");
+    FileSupport.recursiveDelete(dataDir);
+    
+    String uri = "spawn:" + dataDir.getCanonicalFile().toString().replace("\\", "/") + "?createWindow=false";
+    
+    Main.main(new String [] {"-a", "deploy", "-u", uri});
+    Provisioner provisioner = new ProvisionerFactory().create( uri);
+    try {
+      //Create a provisioner to find the 
+      MeshKeeper mesh = MeshKeeperFactory.createMeshKeeper(provisioner.findMeshRegistryUri());
+      mesh.destroy();
+    }
+    finally {
+      Main.main(new String [] {"-a", "undeploy", "-u", uri});
+    }
+    
+    MeshProvisioningException expected = null;
+    try {
+        provisioner.findMeshRegistryUri();
+    } catch (MeshProvisioningException e) {
+        expected = e;
+    }
+
+    assertNotNull(expected);
+    
+    
+  }
+    
     // public void testCloudmixProvisionerInstantiation() throws Exception {
     //     Provisioner provisioner = new ProvisionerFactory().create("cloudmix:http://localhost:8181");
     //     assertNotNull(provisioner);

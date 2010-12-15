@@ -117,7 +117,11 @@ public class Main {
                 System.out.println(o);
             }
            
-            System.out.println("Provisioned at " + provisioner.findMeshRegistryUri());
+            if(provisioner.isDeployed()) {
+              System.out.println("Provisioned at " + provisioner.findMeshRegistryUri());
+            } else {
+              System.out.println("Meshkeeper is undeployed");
+            }
         }
         catch (Exception e) {
             showUsage();
