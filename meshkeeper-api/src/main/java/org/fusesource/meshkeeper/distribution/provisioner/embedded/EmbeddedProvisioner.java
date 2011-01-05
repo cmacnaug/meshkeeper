@@ -61,13 +61,16 @@ public class EmbeddedProvisioner implements Provisioner {
                 else {
                     SERVER = new EmbeddedServer();
                 }
-                
-                try {
-                    configure(SERVER);
-                    SERVER.start();
-                } catch (Exception e) {
-                    throw new MeshProvisioningException("Error starting embedded server", e);
+                configure(SERVER);
+            }
+            
+            try {
+                if(!SERVER.isStarted()) {
+                  SERVER.start();
                 }
+            } catch (Exception e) {
+                SERVER = null;
+                throw new MeshProvisioningException("Error starting embedded server", e);
             }
         }
     }

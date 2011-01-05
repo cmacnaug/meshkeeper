@@ -321,6 +321,9 @@ public class SpawnedServer implements LocalServer{
             mesh = MeshKeeperFactory.createMeshKeeper(testUri);
             started = true;
         } catch (Exception e) {
+            if(LOG.isDebugEnabled()) {
+                LOG.debug("Exception while checking deployment status", e);
+            }
             registryUri = null;
             started = false;
         } finally {

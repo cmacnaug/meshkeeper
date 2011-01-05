@@ -132,7 +132,7 @@ public class MeshKeeperProvisionerTest extends TestCase {
     dataDir = new File(dataDir + File.separator + "testProvisionerMain");
     FileSupport.recursiveDelete(dataDir);
     
-    String uri = "spawn:" + dataDir.getCanonicalFile().toString().replace("\\", "/") + "?createWindow=false";
+    String uri = "spawn:" + dataDir.getCanonicalFile().toString().replace("\\", "/") + "?createWindow=true";
     
     Main.main(new String [] {"-a", "deploy", "-u", uri});
     Provisioner provisioner = new ProvisionerFactory().create( uri);
@@ -140,6 +140,9 @@ public class MeshKeeperProvisionerTest extends TestCase {
       //Create a provisioner to find the 
       MeshKeeper mesh = MeshKeeperFactory.createMeshKeeper(provisioner.findMeshRegistryUri());
       mesh.destroy();
+      
+      //Make sure we don't double deploy:
+      Main.main(new String [] {"-a", "deploy", "-u", uri});
     }
     finally {
       Main.main(new String [] {"-a", "undeploy", "-u", uri});

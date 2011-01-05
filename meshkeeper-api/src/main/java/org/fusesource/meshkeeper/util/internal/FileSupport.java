@@ -33,6 +33,8 @@ import java.util.zip.ZipEntry;
  */
 public class FileSupport {
 
+    static final int DELETION_ATTEMPTS = Integer.getInteger("file.deletion.attempts", 5);
+    static final long DELETION_SLEEP = Long.getLong("file.deletion.sleep", 200);
     static final long ROUNDUP_MILLIS = 1999;
     
     public static void recursiveDelete(String srcDir) throws IOException {
@@ -103,14 +105,33 @@ public class FileSupport {
      * @return true if the directory was deleted.
      */
     public static boolean recursiveDelete(File file) {
+        boolean rc = true;
+
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             for (int i = 0; i < files.length; i++) {
-                recursiveDelete(files[i]);
+                rc &= recursiveDelete(files[i]);
             }
         }
-        return file.delete();
+        
+        for (int i = 0; i < DELETION_ATTEMPTS; i++) {
+            boolean success = file.delete();
+
+            if (success) {
+                break;
+            }
+            try {
+                Thread.sleep(DELETION_SLEEP);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        return rc;
+
     }
+    
 
 
     public static void write(InputStream source, File target) throws IOException {
