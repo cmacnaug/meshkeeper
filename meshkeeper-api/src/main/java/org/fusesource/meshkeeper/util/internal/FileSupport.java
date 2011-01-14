@@ -175,6 +175,10 @@ public class FileSupport {
             os.setMethod(ZipOutputStream.DEFLATED);
             os.setLevel(5);
             recusiveJar(os, source, null);
+        } catch (IOException ioe) {
+            IOException nioe = new IOException("Error jarring " + source);
+            nioe.initCause(ioe);
+            throw nioe;
         } finally {
             close(os);
         }
@@ -197,7 +201,12 @@ public class FileSupport {
             FileInputStream is = new FileInputStream(source);
             try {
                 copy(is, os);
-            } finally {
+            } catch (IOException ioe) {
+                IOException nioe = new IOException("Error jarring " + source);
+                nioe.initCause(ioe);
+                throw nioe;
+            }
+            finally {
                 close(is);
             }
         }
