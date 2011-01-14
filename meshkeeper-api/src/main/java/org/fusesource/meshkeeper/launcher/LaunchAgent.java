@@ -406,7 +406,9 @@ public class LaunchAgent implements LaunchAgentService {
         }
 
         public void onChildrenChanged(String path, List<String> children) {
-            log.info("Detected launcher change: " + children.toString());
+            if(log.isDebugEnabled()) {
+                log.debug("Detected launcher change: " + children.toString());
+            }
             checkForRogueProcesses();
         }
     }
