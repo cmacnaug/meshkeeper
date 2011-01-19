@@ -1,0 +1,34 @@
+#This map file maps diffent os identifiers to a matching artifact
+#For an os given the System properties:
+#[os.name],[os.version],[os.arch]
+#
+#The rules in this file are specified 
+#[os.name],[os.version],[os.arch]=artifact
+#where each supplied value will be matched
+#against the rule by lowercasing the rule and input
+#and checking to see if the input contains the rule 
+#String. 
+#
+#You can use a '*' to specify a wildcard for the rule
+#meaning that field will match any input. Trailing
+#rule properties may be omitted, and will be interpreted
+#as having '*' values
+#
+#For example, the inputs
+#Mac OS X, 10.3.4, ppc
+#
+#The following rules would match:
+#mac=mac
+#mac,10.3=mac
+#mac,10.3.4,ppc=mac
+#*,10.3=mac
+#
+#OR
+#Windows XP,5.1,amd64
+#win
+#win,*,64
+#
+windows=win
+linux=linux
+mac=mac-osx-10.6-x86
+*=linux

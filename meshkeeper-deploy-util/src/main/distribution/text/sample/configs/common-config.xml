@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<project name="Common Config Tasks" default="-doTailoring" basedir=".">
+
+  <description>Common Config Tasks</description>
+
+  <target name="-doTailoring">
+    <java fork="false" classname="rg.meshkeeper.deployer.util.TailoringUtil">
+      <arg value="${style}"/>
+      <arg value="${filename}"/>
+      <arg value="${propertiesFile}"/>
+    </java>
+  </target>
+  
+  <target name="propFileTailor">
+      <java fork="false" classname="rg.meshkeeper.deployer.util.PropFileTailor">
+        <sysproperty key="appendUnreplaced" value="true"/>
+        <arg value="${filename}"/>
+        <arg value="${propname}"/>
+        <arg value="${propvalue}"/>
+      </java>
+    </target>
+</project>
+

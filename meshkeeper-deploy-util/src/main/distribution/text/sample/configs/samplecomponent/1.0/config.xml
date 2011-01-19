@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<project name="install-sample-component" default="install" basedir=".">
+
+  <description>Configure samplecomponent 6.0.29</description>
+  <property file="./config.properties" />
+  <property name="basedir" value="." />
+  <property name="install.name" value="samplecomponent" />
+  <property name="install.version" value="6.0.29" />
+  <property name="backup.location" value="${backup.dir}" />
+  <property name="version.file" value="${install.dir}/version-${install.name}-${install.version}" />
+  <available file="${backup.location}" property="backup.exists" />
+  <import file="../../common-config.xml" />
+
+  <target name="install">
+    <!--Restore a backup or install new-->
+    <condition property="install-task" value="restore" else="install-new">
+      <and>
+        <available file="${version.file}" type="file" />
+        <available file="${backup.location}" type="dir" />
+      </and>
+    </condition>
+    <antcall inheritall="true" target="${install-task}" />
+  </target>
+
+  <target name="configure">
+    <!--Tailor files-->
+    <antcall inheritall="true" target="tailor" />
+
+    <condition property="os.setup" value="-setup-win" else="-setup-unix">
+      <os family="windows" />
+    </condition>
+
+    <!--Perform os specific setup-->
+    <antcall inheritall="true" target="${os.setup}" />
+  </target>
+
+  <target name="backup" unless="backup.exists">
+    <copy todir="${backup.location}" overwrite="true" includeemptydirs="true">
+      <fileset dir="${install.dir}" />
+    </copy>
+    <property name="backup.exists" value="true" />
+  </target>
+
+  <target name="restore" if="backup.exists">
+    <copy todir="${install.dir}" overwrite="true" includeemptydirs="true">
+      <fileset dir="${backup.location}" />
+    </copy>
+  </target>
+
+  <target name="tailor">
+
+    <!--Clean up tmp directory"-->
+    <delete dir="${basedir}/tmp" quiet="true" />
+    <mkdir dir="${basedir}/tmp" />
+
+    <!-- Copy to tmp and tailor -->
+    <copy todir="${basedir}/tmp">
+      <fileset dir="${basedir}/tailor" />
+    </copy>
+
+    <!--Tailor files in tailor dir"-->
+    <antcall target="-doTailoring">
+      <param name="style" value="spring" />
+      <param name="filename" value="${basedir}/tmp" />
+      <param name="propertiesFile" value="${config.properties}" />
+    </antcall>
+
+    <!--Copy tailored files"-->
+    <copy todir="${install.dir}" overwrite="true">
+      <fileset dir="${basedir}/tmp" />
+    </copy>
+
+    <delete dir="${basedir}/tmp" quiet="true" failonerror="false" />
+  </target>
+
+  <target name="install-new">
+    <delete dir="${install.dir}/${install.name}" quiet="true" />
+
+    <!--Unzip source archives"-->
+    <unzip dest="${install.dir}">
+      <fileset dir="${install.src}">
+        <include name="**/*.zip" />
+      </fileset>
+    </unzip>
+
+    <untar dest="${install.dir}" compression="gzip">
+      <fileset dir="${install.src}">
+        <include name="**/*.tar.gz" />
+      </fileset>
+    </untar>
+
+    <!--strip version stuff from exploded archive directory-->
+    <dirset id="samplecomponent.dir" dir="${install.dir}">
+      <include name="apache-*" />
+    </dirset>
+
+    <pathconvert property="samplecomponent.dir" refid="samplecomponent.dir" />
+    <echo message="samplecomponent: ${samplecomponent.dir}" />
+
+    <move toDir="${install.dir}">
+      <fileset dir="${samplecomponent.dir}" />
+    </move>
+
+    <touch file="${version.file}" />
+  </target>
+
+  <target name="-setup-win" />
+  <target name="-setup-unix" />
+
+</project>
