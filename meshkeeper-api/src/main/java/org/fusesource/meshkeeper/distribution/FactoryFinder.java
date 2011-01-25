@@ -68,12 +68,12 @@ public class FactoryFinder {
      */
     @SuppressWarnings("unchecked")
     public <T> Class<T> find(String key) throws ClassNotFoundException, IOException {
-        Class clazz = classMap.get(key);
+        Class<?> clazz = classMap.get(key);
         if (clazz == null) {
             clazz = loadClass(key);
             classMap.put(key, clazz);
         }
-        return clazz;
+        return (Class<T>) clazz;
     }
 
     private Class<?> loadClass(String key) throws ClassNotFoundException, IOException {
