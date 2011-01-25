@@ -84,6 +84,7 @@ public class BaseComponent implements Component {
   private String executableExtension = null;
   private MeshProcess process;
   
+  private List<Integer> reservedPorts;
   
   public BaseComponent() {
     
@@ -128,6 +129,43 @@ public class BaseComponent implements Component {
     }
     state = STATE.INITIALIZED;
     log.info("Initialized " + getName());
+  }
+  
+  /**
+   * Reserves ports on the target host (ensures that a port is free and unique). 
+   * @param count The number of ports to reserve. 
+   */
+  protected void reservePorts(int count) {
+    if(isDeployable()) {
+      try {
+        reservedPorts = meshKeeper.launcher().reserveTcpPorts(hostProperties.getAgentId(), count);
+      }
+      catch (Exception e) {
+        throw new DeploymentException("Error reserving ports for " + getName(), e);
+      }
+    }
+  }
+  
+  /**
+   * Gets a port reserved on the target launch agent. The index is 0 based. 
+   * @param index The port index. 
+   * @return The reserved port. 
+   */
+  public Integer getReservedPort(int index) {
+    if(reservedPorts == null) {
+      reservePorts(index + 1);
+    }
+    
+    if(reservedPorts.size() < index + 1) {
+      try {
+        reservedPorts.addAll(meshKeeper.launcher().reserveTcpPorts(hostProperties.getAgentId(), index - reservedPorts.size()));
+      }
+      catch (Exception e) {
+        throw new DeploymentException("Error reserving ports for " + getName(), e);
+      }
+    }
+    
+    return reservedPorts.get(index);
   }
   
   public boolean isDeployable() {
