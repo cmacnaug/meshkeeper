@@ -26,7 +26,7 @@ import org.fusesource.meshkeeper.MeshArtifact;
  * @author cmacnaug
  * @version 1.0
  */
-public class WagonResource implements MeshArtifact{
+public class WagonArtifact implements MeshArtifact{
 
     private static final long serialVersionUID = 1L;
     public static final short FILE = 0;

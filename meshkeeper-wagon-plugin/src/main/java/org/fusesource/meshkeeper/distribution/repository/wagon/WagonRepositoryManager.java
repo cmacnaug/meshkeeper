@@ -47,7 +47,7 @@ import org.fusesource.meshkeeper.util.internal.FileSupport;
  * @author cmacnaug
  * @version 1.0
  */
-public class WagonResourceManager extends AbstractRepositoryClient {
+public class WagonRepositoryManager extends AbstractRepositoryClient {
 
     private static Log log = LogFactory.getLog(AbstractRepositoryClient.class);
 
@@ -80,7 +80,7 @@ public class WagonResourceManager extends AbstractRepositoryClient {
      * @return An empty resource.
      */
     public MeshArtifact createArtifact() {
-        return new WagonResource();
+        return new WagonArtifact();
     }
 
     public void setLocalRepoDir(String localRepoDir) throws Exception {

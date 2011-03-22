@@ -29,7 +29,7 @@ import org.fusesource.meshkeeper.distribution.repository.RepositoryProviderFacto
  * @author cmacnaug
  * @version 1.0
  */
-public class WagonResourceManagerFactory extends RepositoryProviderFactory {
+public class WagonRepositoryManagerFactory extends RepositoryProviderFactory {
 
     String localRepoDir;
     String commonRepoUrl;
@@ -44,7 +44,7 @@ public class WagonResourceManagerFactory extends RepositoryProviderFactory {
      */
     @Override
     public RepositoryClient createPlugin(String uri) throws Exception {
-        WagonResourceManager wrm = new WagonResourceManager();
+        WagonRepositoryManager wrm = new WagonRepositoryManager();
         if (localRepoDir != null) {
             wrm.setLocalRepoDir(localRepoDir);
         }

@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.fusesource.meshkeeper.MeshArtifact;
 import org.fusesource.meshkeeper.MeshKeeper.Repository;
-import org.fusesource.meshkeeper.distribution.repository.wagon.WagonResourceManager;
+import org.fusesource.meshkeeper.distribution.repository.wagon.WagonRepositoryManager;
 
 import junit.framework.TestCase;
 
@@ -44,7 +44,7 @@ public class ResourceTest extends TestCase {
 
     public void testWebDavResourceManager() throws Exception {
 
-        WagonResourceManager rm = new WagonResourceManager();
+        WagonRepositoryManager rm = new WagonRepositoryManager();
         File localDir = new File("target" + File.separator + "test-repo");
         rm.setLocalRepoDir(localDir.getCanonicalPath());
         log.info("Deleting local resource directory: " + localDir);
@@ -71,7 +71,7 @@ public class ResourceTest extends TestCase {
     }
 
     public void testFileResourceManager() throws Exception {
-        WagonResourceManager rm = new WagonResourceManager();
+        WagonRepositoryManager rm = new WagonRepositoryManager();
         File localDir = new File("target" + File.separator + "test-repo");
         rm.setLocalRepoDir(localDir.getCanonicalPath());
         log.info("Deleting local resource directory: " + localDir);
