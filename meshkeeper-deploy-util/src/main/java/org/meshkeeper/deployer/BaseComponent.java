@@ -241,7 +241,6 @@ public class BaseComponent implements Component {
     configurator.setWorkingDir(file(deployment.getConfigLocation(this)));
     configurator.setBuildFile(file(deployment.getConfigLocation(this) + "/config.xml"));
    
-    //alfrescoConfig.addArgs("-verbose");
     if(isInstallable()) {
       configurator.addArgs("install");
     }
