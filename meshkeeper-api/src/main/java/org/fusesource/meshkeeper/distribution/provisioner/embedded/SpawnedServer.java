@@ -143,13 +143,17 @@ public class SpawnedServer implements LocalServer{
                 if (isCreateWindow() && pauseWindow) {
                     writer.write("pause\r\n");
                 }
-                cmdArray = new String[] { "START", batFile.getCanonicalPath() };
+                
                 command = "START " + batFile.getCanonicalPath();
                 writer.flush();
                 writer.close();
+                
+                cmdArray = new String[] {"START", batFile.getCanonicalPath() };
+                Execute e = new Execute(jl.getWorkingDir().evaluate());
+                e.setCommandline(cmdArray);
+                e.spawn();
+                
                 createWindow = true;
-                Process proc = Runtime.getRuntime().exec(cmdArray, null, new File(ld.getWorkingDirectory().evaluate()));
-                proc.waitFor();
             } else {
                 createWindow = false;
                 Execute e = new Execute(jl.getWorkingDir().evaluate());
