@@ -1,0 +1,51 @@
+#!/bin/sh
+## Copyright (C) 2009 Progress Software, Inc. All rights reserved.
+## http://fusesource.com
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at 
+##
+##        http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+DIRNAME=`dirname "$0"`
+
+# OS specific support (must be 'true' or 'false').
+cygwin=false;
+case "`uname`" in
+    CYGWIN*)
+        cygwin=true
+        ;;
+esac
+
+# For Cygwin, ensure paths are in UNIX format before anything is touched
+if $cygwin ; then
+    [ -n "$MESHKEEPER_HOME" ] && MESHKEEPER_HOME=`cygpath --unix "$MESHKEEPER_HOME"`
+fi
+	
+# Locate MESHKEEPER_HOME if not it is not set
+if [ "x$MESHKEEPER_HOME" = "x" ]; then
+    MESHKEEPER_HOME=`cd "$DIRNAME/.."; pwd`
+fi
+
+# Determine the Java command to use to start the JVM
+. $DIRNAME/detect-java
+
+# For Cygwin, ensure paths are in UNIX format before anything is touched
+if $cygwin ; then
+    [ -n "$JAVACMD" ] && JAVACMD=`cygpath --unix "$JAVACMD"`
+    [ -n "$JAVA_HOME" ] && JAVA_HOME=`cygpath --unix "$JAVA_HOME"`
+fi
+
+COMMAND_EXECUTOR=com.savvion.webbpa.common.console.CommandExecutor
+#conf directory to pick up log4j.properties:
+MESHKEEPER_CLASSPATH="$MESHKEEPER_PROPERTIES_PATH:$MESHKEEPER_HOME/conf:$MESHKEEPER_HOME/lib/meshkeeper-deployer.jar"
+if $cygwin ; then
+    MESHKEEPER_CLASSPATH=`cygpath --windows "$MESHKEEPER_CLASSPATH"`
+fi
