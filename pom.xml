@@ -22,6 +22,12 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
+  <parent>
+    <groupId>org.fusesource</groupId>
+    <artifactId>fusesource-pom</artifactId>
+    <version>1.9</version>
+  </parent>  
+
   <name>MeshKeeper</name>
   <description>
     MeshKeeper is a platform for launching, coordinating and controlling arbitrary scripts,
@@ -94,15 +100,14 @@
     
   <distributionManagement>
     <repository>
-      <id>release.fusesource.org</id>
-      <name>Release Repository</name>
-      <url>dav:http://fusesource.com/forge/dav/${forge-project-id}/repo/release</url>
+      <id>fusesource-nexus-staging</id>
+      <name>Fusesource Release Repository</name>
+      <url>http://repo.fusesource.com/nexus/service/local/staging/deploy/maven2</url>
     </repository>
     <snapshotRepository>
-      <uniqueVersion>false</uniqueVersion>
-      <id>snapshot.fusesource.org</id>
-      <name>Snapshot Repository</name>
-      <url>dav:http://fusesource.com/forge/dav/${forge-project-id}/repo/snapshot</url>
+      <id>fusesource-nexus-snapshots</id>
+      <name>Fusesource Nexus Snapshots</name>
+      <url>http://repo.fusesource.com/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
     <site>
       <id>website.fusesource.org</id>
