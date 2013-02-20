@@ -23,6 +23,10 @@ import java.io.*;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipEntry;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.fusesource.meshkeeper.launcher.LaunchAgent;
+
 /** 
  * FileUtils
  * <p>
@@ -32,7 +36,7 @@ import java.util.zip.ZipEntry;
  * @version 1.0
  */
 public class FileSupport {
-
+    private static final Log LOG = LogFactory.getLog(FileSupport.class);
     static final int DELETION_ATTEMPTS = Integer.getInteger("file.deletion.attempts", 5);
     static final long DELETION_SLEEP = Long.getLong("file.deletion.sleep", 200);
     static final long ROUNDUP_MILLIS = 1999;
@@ -204,7 +208,11 @@ public class FileSupport {
             } catch (IOException ioe) {
                 IOException nioe = new IOException("Error jarring " + source);
                 nioe.initCause(ioe);
-                throw nioe;
+                os.closeEntry();
+                LOG.warn("Skipping jar entry for " + source.getAbsolutePath() + " - " + nioe.getMessage());
+                if(LOG.isTraceEnabled()) {
+                  LOG.trace("Skipping jar entry for " + source.getAbsolutePath(), nioe);
+                }
             }
             finally {
                 close(is);

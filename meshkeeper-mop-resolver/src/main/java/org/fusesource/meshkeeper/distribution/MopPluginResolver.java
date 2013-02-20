@@ -114,8 +114,8 @@ public class MopPluginResolver implements PluginResolver {
             //Add in configured repos:
             repositories.putAll(MOP_REPO.getConfiguredRepositories());
             //Add in meshkeeper repos:
-            repositories.put("meshkeeper.release", "http://repo.fusesource.com/nexus/content/repositories/releases");
-            repositories.put("meshkeeper.snapshot", "http://repo.fusesource.com/nexus/content/repositories/snapshots");
+            repositories.put("fusesource-nexus-releases", "http://repo.fusesource.com/nexus/content/repositories/releases");
+            repositories.put("fusesource-nexus-snapshots", "http://repo.fusesource.com/nexus/content/repositories/snapshots");
             MOP_REPO.setIncludeOptional(true);
 
         }
